@@ -1,4 +1,4 @@
-require("dotenv").config();
+import "dotenv/config";
 import { google } from "googleapis";
 import { parse, toSeconds } from "iso8601-duration";
 import dayjs from "dayjs";

@@ -1,9 +1,13 @@
 import fs from "fs";
 import path from "path";
 import Database from "better-sqlite3";
-import streamers from "@/streamers";
-import { attachReverseWeights, mask, randByWeight, randInt } from "@/db/util";
-import yt from "@/db/youtube";
+import streamers from "../streamers/index.js";
+import { attachReverseWeights, mask, randByWeight, randInt } from "./util.js";
+import yt from "./youtube.js";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const dataDir = path.join(__dirname, "../data");
 if (!fs.existsSync(dataDir)) {
@@ -30,66 +34,71 @@ export default class Connection {
   }
 
   async syncChannel({
-    channel: { username, channelId, videoTitleFilter },
+    channel: { username, channelId, videoTitleFilter = () => true },
     updateOnly,
     limit,
   }) {
-    const channel = await yt.getChannelDetails({ username, channelId });
-    const mostRecentinDatabase = await this.getMostRecent(channel.id);
+    const channelDetails = await yt.getChannelDetails({ username, channelId });
+    const mostRecentinDatabase = await this.getMostRecent(channelDetails.id);
     console.log(
       `processing ${username}... (most recent: ${new Date(
         mostRecentinDatabase
       )})`
     );
+
     let pageToken = null;
-    let affectedRows = 0;
+    let addedVideos = 0;
+
     while (true) {
-      const trans = this.db.transaction((videos, channel) => {
-        console.log(videos);
-        const result = this.insertVideos(
-          videos
-            .filter(({ viewCount }) => !!Number(viewCount))
-            .filter(({ videoTitle }) => videoTitleFilter(videoTitle))
-        );
+      const { videos, nextPageToken } = await yt.getChannelVideos(
+        channelDetails,
+        pageToken
+      );
+
+      // Filter out videos based on viewCount and title
+      const filteredVideos = videos
+        .filter(({ viewCount }) => !!Number(viewCount))
+        .filter(({ videoTitle }) => videoTitleFilter(videoTitle));
+
+      // Update database with the filtered videos and get number of rows added
+      const rowsAdded = this.updateDatabaseWithVideos(
+        filteredVideos,
+        channelDetails
+      );
+      addedVideos += rowsAdded;
+      console.log("addedVideos:", addedVideos);
+
+      pageToken = nextPageToken;
+
+      // Stop criteria
+      if (
+        (limit && addedVideos >= limit) ||
+        (updateOnly &&
+          new Date(videos?.[videos.length - 1]?.publishedAt) <
+            new Date(mostRecentinDatabase)) ||
+        videos.length < 50
+      ) {
+        console.log(` (${addedVideos} new videos)`);
+        break;
+      }
+    }
+  }
+
+  updateDatabaseWithVideos(videos, channel) {
+    return this.db.transaction((videos, channel) => {
+      const added = this.insertVideos(videos);
+
+      if (added) {
         this.computeVideoIndex(channel.id);
         this.computeCumulativeColumn(channel.id, "duration");
         this.computeCumulativeColumn(channel.id, "viewCount");
         this.computeCumulativeReverseColumn(channel.id, "duration");
         this.computeCumulativeReverseColumn(channel.id, "viewCount");
         this.createChannelRow(channel);
-        return result;
-      });
-
-      const { videos, nextPageToken } = await yt.getChannelVideos(
-        channel,
-        pageToken
-      );
-      pageToken = nextPageToken;
-
-      const result = trans(videos, channel);
-
-      if (result) {
-        affectedRows += result;
       }
 
-      const mostRecentFromYoutube = new Date(
-        videos?.[videos.length - 1]?.publishedAt
-      );
-      console.log("most recent from youtube:", mostRecentFromYoutube);
-
-      if (videos.length < 50) {
-        console.log(` (${affectedRows} new videos)`);
-        break;
-      }
-
-      if (
-        updateOnly &&
-        mostRecentFromYoutube < new Date(mostRecentinDatabase)
-      ) {
-        console.log(` (${affectedRows} new videos)`);
-        break;
-      }
-    }
+      return added;
+    })(videos, channel);
   }
 
   /* Database methods */
@@ -485,5 +494,31 @@ export default class Connection {
 
     const videos = trans(count);
     return videos;
+  }
+
+  /* Stats */
+  getStats() {
+    console.time("stats");
+    let stats = this.db
+      .prepare(
+        `SELECT
+        channelId,
+        SUM(viewCount) as views,
+        SUM(duration) as duration,
+        COUNT() as videos
+       FROM videos
+       GROUP BY channelId`
+      )
+      .all();
+
+    stats = stats.map((c) => ({
+      ...c,
+      channelName: this.streamer.channels.find(
+        (ch) => ch.channelId === c.channelId
+      ).name,
+    }));
+
+    console.timeEnd("stats");
+    return stats;
   }
 }

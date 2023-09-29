@@ -50,9 +50,12 @@ const streamers = [
       },
     },
     channels: [
-      { username: "jerma985", channelId: "UCBQWIBij3ZCUA7YETaTWnIA" },
-      { username: "jerma985archive", channelId: "UCfGfdZuYifBYb1fmZcL1JBQ" },
-      { username: "jerma985clips", channelId: "UCz9_5DlGyfcIzXxjTa8YqUw" },
+      { username: "Jerma985", channelId: "UCK3kaNXbB57CLcyhtccV_yw" },
+      { username: "JermaStreamArchive", channelId: "UC2oWuUSd3t3t5O3Vxp4lgAA" },
+      {
+        username: "SterJermaStreamArchive",
+        channelId: "UC4ik7iSQI1DZVqL18t-Tffw",
+      },
     ],
   },
 ];

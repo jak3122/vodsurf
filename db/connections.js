@@ -1,5 +1,5 @@
-import streamers from "@/streamers";
-import Connection from "@/db/Connection";
+import streamers from "../streamers/index.js";
+import Connection from "./Connection.js";
 
 const connections = {};
 
