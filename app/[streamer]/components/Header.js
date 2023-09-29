@@ -1,12 +1,14 @@
 "use client";
-import { Flex } from "@chakra-ui/react";
+import { Flex, useDisclosure } from "@chakra-ui/react";
 import RandomButton from "./RandomButton";
 import SettingsButton from "./SettingsButton";
 import Countdown from "./Countdown";
 import useStreamer from "@/hooks/useStreamer";
+import Settings from "@/app/[streamer]/components/Settings";
 
 export default function Header() {
   const streamer = useStreamer();
+  const settingsModal = useDisclosure();
 
   return (
     <Flex
@@ -21,9 +23,10 @@ export default function Header() {
     >
       <Flex alignItems="center" h="full" position="relative">
         <RandomButton />
-        <SettingsButton />
+        <SettingsButton modal={settingsModal} />
         <Countdown />
       </Flex>
+      <Settings modal={settingsModal} />
     </Flex>
   );
 }

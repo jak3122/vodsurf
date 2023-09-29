@@ -1,12 +1,16 @@
 "use client";
-import useStreamer from "@/hooks/useStreamer";
 import { Button } from "@chakra-ui/react";
+import useStreamer from "@/hooks/useStreamer";
+import useVideoStore from "@/store/useVideoStore";
 
 export default function RandomButton() {
   const streamer = useStreamer();
+  const fetchVideos = useVideoStore((state) => state.fetchVideos);
+  const onClick = () => fetchVideos(streamer.name);
 
   return (
     <Button
+      onClick={onClick}
       cursor="pointer"
       size="sm"
       width="14rem"
