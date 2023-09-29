@@ -36,16 +36,16 @@ const streamers = [
     route: "jerma",
     supportedRoutes: ["jerma", "jerma985"],
     theme: {
-      primary: "teal.600",
-      accent: "red.400",
-      bg: "teal.900",
+      primary: "#1B3D45",
+      accent: "#FF4046",
+      bg: "#0A262F",
       text: "white",
       button: {
-        bg: "cyan.600",
+        bg: "#5bc2c9",
         border: "black",
         text: "black",
         hover: {
-          bg: "cyan.500",
+          bg: "#5bc2c9e0",
         },
       },
     },
@@ -55,6 +55,8 @@ const streamers = [
       {
         username: "SterJermaStreamArchive",
         channelId: "UC4ik7iSQI1DZVqL18t-Tffw",
+        videoTitleFilter: (title) =>
+          title.toLowerCase().includes("jerma streams"),
       },
     ],
   },

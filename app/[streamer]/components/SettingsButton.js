@@ -6,6 +6,7 @@ export default function SettingsButton({ modal }) {
   return (
     <Button
       onClick={modal.onOpen}
+      variant="link"
       alignItems="center"
       bg="transparent"
       border="0"

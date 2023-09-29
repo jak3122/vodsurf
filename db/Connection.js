@@ -1,10 +1,10 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 import streamers from "../streamers/index.js";
 import { attachReverseWeights, mask, randByWeight, randInt } from "./util.js";
 import yt from "./youtube.js";
-import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,7 +66,6 @@ export default class Connection {
         channelDetails
       );
       addedVideos += rowsAdded;
-      console.log("addedVideos:", addedVideos);
 
       pageToken = nextPageToken;
 
