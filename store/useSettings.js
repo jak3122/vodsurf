@@ -1,13 +1,13 @@
 "use client";
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import _ from "lodash";
+import { persist } from "zustand/middleware";
+import merge from "lodash/merge";
 import streamers from "@/streamers";
 
 export const playerModes = Object.freeze({
-  NONE: "none",
   VIDEO: "video",
   LINKS: "links",
+  ENDLESS: "endless",
 });
 
 const SETTINGS_KEY = "settings";
@@ -28,17 +28,6 @@ const defaultSettings = Object.freeze({
   },
 });
 
-const getStoredSettings = () => {
-  const settingsFromStorage = localStorage?.getItem(SETTINGS_KEY);
-  return settingsFromStorage
-    ? _.merge({}, defaultSettings, JSON.parse(settingsFromStorage))
-    : defaultSettings;
-};
-
-const setStoredSettings = (settings) => {
-  localStorage?.setItem(SETTINGS_KEY, JSON.stringify(settings));
-};
-
 const useSettings = create(
   persist(
     (set) => ({
@@ -46,18 +35,10 @@ const useSettings = create(
 
       setSettings: (data) =>
         set((state) => ({
-          settings: _.merge({}, state.settings, data),
+          settings: merge({}, state.settings, data),
         })),
 
-      // saveSettings: () => {
-      //   set((state) => {
-      //     setStoredSettings(state.settings);
-      //     return state;
-      //   });
-      // },
-
       resetSettings: () => {
-        // setStoredSettings(defaultSettings);
         return { settings: defaultSettings };
       },
     }),
