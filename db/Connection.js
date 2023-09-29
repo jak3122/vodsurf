@@ -1,0 +1,489 @@
+import fs from "fs";
+import path from "path";
+import Database from "better-sqlite3";
+import streamers from "@/streamers";
+import { attachReverseWeights, mask, randByWeight, randInt } from "@/db/util";
+import yt from "@/db/youtube";
+
+const dataDir = path.join(__dirname, "../data");
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+export default class Connection {
+  constructor(streamerName) {
+    this.db = new Database(path.join(dataDir, `${streamerName}.db`));
+    this.streamer = streamers.find((s) => s.route === streamerName);
+  }
+
+  allChannelIds() {
+    return this.streamer.channels.map((c) => c.channelId);
+  }
+
+  /* Populate/update */
+
+  async sync({ updateOnly = false, limit = null }) {
+    this.createTables();
+    for (const channel of this.streamer.channels) {
+      await this.syncChannel({ channel, updateOnly, limit });
+    }
+  }
+
+  async syncChannel({
+    channel: { username, channelId, videoTitleFilter },
+    updateOnly,
+    limit,
+  }) {
+    const channel = await yt.getChannelDetails({ username, channelId });
+    const mostRecentinDatabase = await this.getMostRecent(channel.id);
+    console.log(
+      `processing ${username}... (most recent: ${new Date(
+        mostRecentinDatabase
+      )})`
+    );
+    let pageToken = null;
+    let affectedRows = 0;
+    while (true) {
+      const trans = this.db.transaction((videos, channel) => {
+        console.log(videos);
+        const result = this.insertVideos(
+          videos
+            .filter(({ viewCount }) => !!Number(viewCount))
+            .filter(({ videoTitle }) => videoTitleFilter(videoTitle))
+        );
+        this.computeVideoIndex(channel.id);
+        this.computeCumulativeColumn(channel.id, "duration");
+        this.computeCumulativeColumn(channel.id, "viewCount");
+        this.computeCumulativeReverseColumn(channel.id, "duration");
+        this.computeCumulativeReverseColumn(channel.id, "viewCount");
+        this.createChannelRow(channel);
+        return result;
+      });
+
+      const { videos, nextPageToken } = await yt.getChannelVideos(
+        channel,
+        pageToken
+      );
+      pageToken = nextPageToken;
+
+      const result = trans(videos, channel);
+
+      if (result) {
+        affectedRows += result;
+      }
+
+      const mostRecentFromYoutube = new Date(
+        videos?.[videos.length - 1]?.publishedAt
+      );
+      console.log("most recent from youtube:", mostRecentFromYoutube);
+
+      if (videos.length < 50) {
+        console.log(` (${affectedRows} new videos)`);
+        break;
+      }
+
+      if (
+        updateOnly &&
+        mostRecentFromYoutube < new Date(mostRecentinDatabase)
+      ) {
+        console.log(` (${affectedRows} new videos)`);
+        break;
+      }
+    }
+  }
+
+  /* Database methods */
+
+  createTables() {
+    this.db.exec(
+      `CREATE TABLE IF NOT EXISTS videos (
+        videoId VARCHAR(14) PRIMARY KEY NOT NULL,
+        videoIndex INT,
+        duration INT NOT NULL,
+        durationCumul INT,
+        durationCumulRev INT,
+        publishedAt DATEONLY NOT NULL,
+        viewCount INT,
+        viewCountCumul INT,
+        viewCountCumulRev INT,
+        channelId VARCHAR(30) NOT NULL,
+        channelTitle VARCHAR(30),
+        videoTitle VARCHAR(100)
+      )`
+    );
+    this.db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS videoKey ON videos (videoId);
+       CREATE INDEX IF NOT EXISTS channelKey1 ON videos (channelId, durationCumul);
+       CREATE INDEX IF NOT EXISTS channelKey2 ON videos (channelId, viewCountCumul);
+       CREATE INDEX IF NOT EXISTS channelKey3 ON videos (channelId, viewCountCumulRev);
+       CREATE INDEX IF NOT EXISTS channelKey4 ON videos (channelId, videoIndex);
+       CREATE INDEX IF NOT EXISTS publishedKey ON videos (publishedAt);
+       CREATE INDEX IF NOT EXISTS durationKey ON videos (duration);
+       CREATE INDEX IF NOT EXISTS durationCumulKey ON videos (durationCumul, channelId);
+       CREATE INDEX IF NOT EXISTS viewCountKey ON videos (viewCount);
+       CREATE INDEX IF NOT EXISTS viewCountCumulKey ON videos (viewCountCumul, channelId);
+       CREATE INDEX IF NOT EXISTS viewCountCumulRevKey ON videos (viewCountCumulRev, channelId);
+      `
+    );
+    this.db.exec(
+      `CREATE TABLE IF NOT EXISTS channels (
+        channelId VARCHAR(30) PRIMARY KEY NOT NULL,
+        duration INT,
+        viewCount INT,
+        videoCount INT,
+        channelTitle VARCHAR(30)
+      )`
+    );
+  }
+
+  insertVideos(videos) {
+    if (!videos || !videos.length) return null;
+    let inserted = 0;
+    const stmt = this.db.prepare(
+      `INSERT OR IGNORE INTO videos
+        (duration, publishedAt, videoId, viewCount, channelId, channelTitle, videoTitle)
+       VALUES
+       ($duration, $publishedAt, $videoId, $viewCount, $channelId, $channelTitle, $videoTitle)`
+    );
+    for (const video of videos) {
+      inserted += stmt.run(video).changes;
+    }
+    return inserted;
+  }
+
+  sumDurations(channelIds) {
+    const query = this.db
+      .prepare(`SELECT SUM(duration) AS sum FROM videos WHERE channelId in ?`)
+      .get([[channelIds]]);
+    return Number(query?.sum);
+  }
+
+  computeVideoIndex(channelId) {
+    const rows = this.db
+      .prepare(`SELECT rowid FROM videos WHERE channelId = ?`)
+      .all(channelId);
+
+    const update = this.db.prepare(
+      `UPDATE videos
+     SET videoIndex = $videoIndex WHERE rowid = $rowid`
+    );
+
+    rows.forEach((row, index) => {
+      update.run({ ...row, videoIndex: index });
+    });
+  }
+
+  computeCumulativeColumn(channelId, column) {
+    const columnCumul = `${column}Cumul`;
+    const query = this.db
+      .prepare(
+        `WITH cumul_table AS
+        (
+          SELECT
+            videoId, channelId, ${column},
+            SUM(col) OVER (ORDER BY ${column}) as ${columnCumul}
+          FROM
+          (
+            SELECT
+              videoId, channelId, ${column},
+              LAG(${column}, 1, 0) OVER (ORDER BY ${column}) col
+            FROM videos
+            WHERE channelId = $channelId ORDER BY ${column} ASC
+          )
+        AS t1
+        )
+      UPDATE videos
+      SET ${columnCumul} = (SELECT ${columnCumul} FROM cumul_table WHERE videoId = videos.videoId)
+      WHERE channelId = $channelId
+      `
+      )
+      .run({ channelId });
+    return query;
+  }
+
+  computeCumulativeReverseColumn(channelId, column) {
+    const columnCumul = `${column}Cumul`;
+    const columnCumulRev = `${column}CumulRev`;
+    const rows = this.db
+      .prepare(
+        `SELECT
+          rowid, ${columnCumul}
+        FROM videos
+        WHERE channelId = $channelId
+        ORDER BY ${columnCumul}`
+      )
+      .all({ channelId });
+
+    const copy = rows.map((r) => ({ ...r }));
+    copy.reverse();
+
+    const stmt = this.db.prepare(
+      `UPDATE videos
+         SET ${columnCumulRev} = $${columnCumulRev} WHERE rowid = $rowid`
+    );
+
+    for (let i = 0; i < rows.length; i++) {
+      const update = {
+        ...rows[i],
+        [columnCumulRev]: copy[i][columnCumul],
+      };
+      stmt.run(update);
+    }
+  }
+
+  createChannelRow({ id: channelId, title: channelTitle }) {
+    this.db
+      .prepare(
+        `REPLACE INTO channels (channelId, duration, viewCount, videoCount, channelTitle)
+        SELECT
+          videos.channelId,
+          SUM(videos.duration) as durSum,
+          SUM(videos.viewCount) as viewSum,
+          COUNT() as videoCount,
+          $channelTitle as channelTitle
+        FROM videos
+        WHERE videos.channelId = $channelId
+    `
+      )
+      .run({ channelId, channelTitle });
+  }
+
+  getMostRecent(channelId) {
+    const query = this.db
+      .prepare(
+        `SELECT channelId, MAX(publishedAt) as mostRecent
+     FROM videos
+     WHERE channelId = ?`
+      )
+      .get(channelId);
+    return query?.mostRecent;
+  }
+
+  getVideoRow(videoId) {
+    const videoQuery = this.db
+      .prepare(
+        `SELECT duration, durationCumul, videoId, publishedAt,
+            viewCount, channelId, channelTitle, videoTitle
+    FROM videos
+    WHERE videoId = ?`
+      )
+      .get(videoId);
+    const video = videoQuery;
+    return video;
+  }
+
+  getVideoRowByRowId(rowid) {
+    const video = this.db
+      .prepare(
+        `SELECT duration, durationCumul, videoId, publishedAt,
+    viewCount, channelId, channelTitle, videoTitle
+    FROM videos
+    WHERE rowid = ?`
+      )
+      .get(rowid);
+    return video;
+  }
+
+  /* Query methods */
+
+  randomVideos(channelIds, strategy, count) {
+    if (!channelIds) channelIds = this.allChannelIds();
+    if (!Array.isArray(channelIds)) channelIds = [channelIds];
+
+    let videos;
+    switch (strategy) {
+      case "by_video":
+        videos = this.byVideoCount(channelIds, count);
+        break;
+      case "greatest_hits":
+        videos = this.greatestHits(channelIds, count);
+        break;
+      case "hidden_gems":
+        videos = this.hiddenGems(channelIds, count);
+        break;
+      case "by_duration":
+      default:
+        videos = this.byDuration(channelIds, count);
+        break;
+    }
+
+    return videos;
+  }
+
+  byDuration(channelIds, count) {
+    const trans = this.db.transaction((count) => {
+      const channels = this.db
+        .prepare(
+          `SELECT channelId, duration
+         FROM channels
+         WHERE channelId in (${mask(channelIds)})`
+        )
+        .all(channelIds);
+
+      const videos = Array(count)
+        .fill()
+        .map((_) => {
+          const randChannel = randByWeight(channels, "duration");
+          const { channelId, duration } = randChannel;
+
+          const videoRand = randInt(0, duration);
+          const selectVideoQuery = this.db
+            .prepare(
+              `SELECT rowid, durationCumul
+               FROM videos
+               WHERE channelId = ? AND ? > durationCumul
+               ORDER BY durationCumul DESC
+               LIMIT 1
+              `
+            )
+            .get(channelId, videoRand);
+          const { rowid } = selectVideoQuery;
+          const video = this.getVideoRowByRowId(rowid);
+          const startSeconds = randInt(0, video.duration);
+          return {
+            ...video,
+            startSeconds,
+          };
+        });
+
+      return videos;
+    });
+
+    const videos = trans(count);
+    return videos;
+  }
+
+  byVideoCount(channelIds, count) {
+    const trans = this.db.transaction((count) => {
+      const channels = this.db
+        .prepare(
+          `SELECT channelId, videoCount
+         FROM channels
+         WHERE channelId in (${mask(channelIds)})`
+        )
+        .all(channelIds);
+
+      const videos = Array(count)
+        .fill()
+        .map((_) => {
+          const randChannel = randByWeight(channels, "videoCount");
+          const { channelId, videoCount } = randChannel;
+
+          const videoIndex = randInt(0, videoCount - 1);
+          const selectVideoQuery = this.db
+            .prepare(
+              `SELECT rowid
+               FROM videos
+               WHERE videoIndex = $videoIndex AND channelId = $channelId`
+            )
+            .get({ videoIndex, channelId });
+
+          const { rowid } = selectVideoQuery;
+          const video = this.getVideoRowByRowId(rowid);
+          return {
+            startSeconds: randInt(0, video.duration),
+            ...video,
+          };
+        });
+
+      return videos;
+    });
+
+    const videos = trans(count);
+    return videos;
+  }
+
+  greatestHits(channelIds, count) {
+    const trans = this.db.transaction((count) => {
+      const channels = this.db
+        .prepare(
+          `SELECT channelId, viewCount
+         FROM channels
+         WHERE channelId in (${mask(channelIds)})`
+        )
+        .all(channelIds);
+
+      const videos = Array(count)
+        .fill()
+        .map((_) => {
+          const randChannel = randByWeight(channels, "viewCount");
+          const { channelId, viewCount } = randChannel;
+
+          const videoRand = randInt(0, viewCount);
+          const selectVideoQuery = this.db
+            .prepare(
+              `SELECT rowid, viewCountCumul
+               FROM videos
+               WHERE channelId = ? AND ? >= viewCountCumul
+               ORDER BY viewCountCumul DESC
+               LIMIT 1
+              `
+            )
+            .get(channelId, videoRand);
+
+          const { rowid } = selectVideoQuery;
+          const video = this.getVideoRowByRowId(rowid);
+          return {
+            startSeconds: randInt(0, video.duration),
+            ...video,
+          };
+        });
+
+      return videos;
+    });
+
+    const videos = trans(count);
+    return videos;
+  }
+
+  hiddenGems(channelIds, count) {
+    const trans = this.db.transaction((count) => {
+      let channels = this.db
+        .prepare(
+          `SELECT channelId, viewCount
+         FROM channels
+         WHERE channelId in (${mask(channelIds)})`
+        )
+        .all(channelIds);
+      channels = attachReverseWeights(channels, "viewCount", "viewCountRev");
+
+      const videos = Array(count)
+        .fill()
+        .map((_) => {
+          const randChannel = randByWeight(channels, "viewCountRev");
+          const { channelId } = randChannel;
+
+          const maxCumulQuery = this.db
+            .prepare(
+              `SELECT MAX(viewCountCumulRev) as maxCumul
+          FROM videos
+          WHERE channelId = ?`
+            )
+            .get(channelId);
+          const { maxCumul } = maxCumulQuery;
+
+          const videoRand = randInt(0, maxCumul);
+          const selectVideoQuery = this.db
+            .prepare(
+              `SELECT rowid, viewCountCumulRev
+          FROM videos
+          WHERE channelId = ? AND ? > viewCountCumulRev
+          ORDER BY viewCountCumulRev DESC
+          LIMIT 1
+          `
+            )
+            .get(channelId, videoRand);
+          const { rowid } = selectVideoQuery;
+          const video = this.getVideoRowByRowId(rowid);
+          return {
+            startSeconds: randInt(0, video.duration),
+            ...video,
+          };
+        });
+      return videos;
+    });
+
+    const videos = trans(count);
+    return videos;
+  }
+}
