@@ -17,6 +17,10 @@ export default function Content() {
 
   if (!playerMode) return null;
   if (playerMode === playerModes.LINKS) return <Links />;
-  if (playerMode === playerModes.VIDEO && videos?.length > 0) return <Player />;
+  if (
+    [playerModes.VIDEO, playerModes.ENDLESS].includes(playerMode) &&
+    videos?.length > 0
+  )
+    return <Player />;
   return <Stats />;
 }

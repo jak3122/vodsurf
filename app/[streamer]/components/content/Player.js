@@ -3,12 +3,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import useSettings from "@/store/useSettings";
 import useVideoStore from "@/store/useVideoStore";
+import useTimer from "@/hooks/useTimer";
+import useStreamer from "@/hooks/useStreamer";
 
-export default function Player({ timer, onEnded }) {
+export default function Player() {
   const player = useRef(null);
   const [playerIsReady, setPlayerIsReady] = useState(false);
+  const streamer = useStreamer();
   const settings = useSettings((state) => state.settings);
+  const fetchVideos = useVideoStore((state) => state.fetchVideos);
+  const onExpire = () => fetchVideos({ streamer: streamer.route, settings });
   const video = useVideoStore((state) => state.videos[0]);
+  const timer = useTimer({
+    onExpire,
+    initialSeconds: timerSettingsToSeconds(settings.timer),
+  });
 
   const autoplay = settings.autoplay || settings.mode === "endless";
 
@@ -86,4 +95,9 @@ export default function Player({ timer, onEnded }) {
       <div id="yt-player" style={{ height: "100%", width: "100%" }} />
     </>
   );
+}
+
+export function timerSettingsToSeconds({ h, m, s }) {
+  const seconds = Number(h) * 60 * 60 + Number(m) * 60 + Number(s);
+  return seconds;
 }
