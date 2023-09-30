@@ -6,10 +6,18 @@ export const revalidate = 0;
 
 export async function GET(request) {
   const params = request.nextUrl.searchParams;
-  let channels = params.get("channels");
-  let method = params.get("method");
+  let channels = params.getAll("channels");
   let strategy = params.get("strategy");
   let count = params.get("count");
+
+  const streamerConfig = streamers.find((s) =>
+    s.supportedRoutes.includes(params.get("streamer"))
+  );
+
+  channels = [...new Set(channels)];
+  channels = channels.filter((channel) =>
+    streamerConfig.channels.some((c) => c.channelId === channel)
+  );
 
   if (!count) count = 1;
   count = Number(count);
@@ -19,14 +27,12 @@ export async function GET(request) {
   console.log(params);
   console.time(`random video: ${strategy}, ${count}`);
 
-  const streamerRoute = streamers.find((s) =>
-    s.supportedRoutes.includes(params.get("streamer"))
-  )?.route;
+  const streamerRoute = streamerConfig?.route;
   const streamer = connections[streamerRoute];
   console.log("streamer:", params.get("streamer"));
   console.log("streamerRoute:", streamerRoute);
 
-  const videos = streamer.randomVideos(channels, method, count);
+  const videos = streamer.randomVideos(channels, strategy, count);
   const response = videos.map((video) => pick(video, responseFields));
   console.log(response);
 

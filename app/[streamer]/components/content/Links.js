@@ -1,3 +1,5 @@
+"use client";
+
 export default function Links() {
-  return null;
+  return <div>links here</div>;
 }

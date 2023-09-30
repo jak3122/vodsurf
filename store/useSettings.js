@@ -16,7 +16,7 @@ const defaultSettings = Object.freeze({
   count: 3,
   strategy: "by_duration",
   channels: streamers.reduce((acc, streamer) => {
-    acc[streamer.route] = streamer.channels.map((channel) => channel.username);
+    acc[streamer.route] = streamer.channels.map((c) => c.channelId);
     return acc;
   }, {}),
   autoplay: true,
@@ -33,14 +33,9 @@ const useSettings = create(
     (set) => ({
       settings: defaultSettings,
 
-      setSettings: (data) =>
-        set((state) => ({
-          settings: merge({}, state.settings, data),
-        })),
+      setSettings: (data) => set({ settings: data }),
 
-      resetSettings: () => {
-        return { settings: defaultSettings };
-      },
+      resetSettings: () => ({ settings: defaultSettings }),
     }),
     {
       name: SETTINGS_KEY,

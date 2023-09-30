@@ -1,3 +1,4 @@
+"use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import useSettings from "@/store/useSettings";
