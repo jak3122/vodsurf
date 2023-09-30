@@ -82,7 +82,7 @@ export default function Settings({ modal }) {
       <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
         <ModalCloseButton />
         <Grid templateColumns={`repeat(${columns}, 1fr)`} gap={4} p={4}>
-          <Box as="fieldset">
+          <Fieldset>
             <legend>Mode</legend>
             <RadioGroup value={selectedMode} onChange={handleModeChange}>
               <HStack spacing="24px">
@@ -93,10 +93,10 @@ export default function Settings({ modal }) {
                 ))}
               </HStack>
             </RadioGroup>
-          </Box>
+          </Fieldset>
 
           {mode === playerModes.LINKS ? (
-            <Box as="fieldset">
+            <Fieldset>
               <legend>Count: {count}</legend>
               <Slider
                 value={selectedCount}
@@ -110,12 +110,12 @@ export default function Settings({ modal }) {
                 </SliderTrack>
                 <SliderThumb />
               </Slider>
-            </Box>
+            </Fieldset>
           ) : (
             <Box />
           )}
 
-          <Box as="fieldset">
+          <Fieldset>
             <legend>Strategy</legend>
             <RadioGroup
               value={selectedStrategy}
@@ -128,9 +128,9 @@ export default function Settings({ modal }) {
                 <Radio value="hidden_gems">hidden gems</Radio>
               </VStack>
             </RadioGroup>
-          </Box>
+          </Fieldset>
 
-          <Box as="fieldset">
+          <Fieldset>
             <legend>Channels</legend>
             <CheckboxGroup
               value={selectedChannels}
@@ -139,22 +139,22 @@ export default function Settings({ modal }) {
               <VStack align="start">
                 {streamer.channels.map((channel) => (
                   <Checkbox key={channel.channelId} value={channel.channelId}>
-                    {channel.username}
+                    {channel.title}
                   </Checkbox>
                 ))}
               </VStack>
             </CheckboxGroup>
-          </Box>
+          </Fieldset>
 
-          <Box as="fieldset">
+          <Fieldset>
             <legend>Options</legend>
             <VStack align="start">
               <Checkbox {...register("autoplay")}>Autoplay</Checkbox>
               <Checkbox {...register("randomStart")}>Random Start</Checkbox>
             </VStack>
-          </Box>
+          </Fieldset>
 
-          <Box as="fieldset" direction="column">
+          <Fieldset direction="column">
             <legend>Timer</legend>
             <HStack spacing={4} align="center">
               <HStack spacing={1} align="center">
@@ -170,7 +170,7 @@ export default function Settings({ modal }) {
                 <Input {...register("timer.s")} type="number" />
               </HStack>
             </HStack>
-          </Box>
+          </Fieldset>
         </Grid>
 
         <ModalFooter>
@@ -178,5 +178,13 @@ export default function Settings({ modal }) {
         </ModalFooter>
       </ModalContent>
     </Modal>
+  );
+}
+
+function Fieldset({ children, ...props }) {
+  return (
+    <Box as="fieldset" border="1px solid #ffffff95" p={3} {...props}>
+      {children}
+    </Box>
   );
 }

@@ -12,12 +12,13 @@ export default function Player() {
   const streamer = useStreamer();
   const settings = useSettings((state) => state.settings);
   const fetchVideos = useVideoStore((state) => state.fetchVideos);
-  const onExpire = () => fetchVideos({ streamer: streamer.route, settings });
   const video = useVideoStore((state) => state.videos[0]);
-  const timer = useTimer({
-    onExpire,
-    initialSeconds: timerSettingsToSeconds(settings.timer),
-  });
+  const timer = useTimer();
+  const onExpire = useCallback(
+    () => fetchVideos({ streamer: streamer.route, settings }),
+    [fetchVideos, streamer.route, settings]
+  );
+  timer.setOnExpire(onExpire);
 
   const autoplay = settings.autoplay || settings.mode === "endless";
 
@@ -49,7 +50,7 @@ export default function Player() {
         case window.YT.PlayerState.ENDED:
           if (timer.isRunning) {
             timer.pause();
-            onEnded();
+            onExpire();
           }
           break;
         case window.YT.PlayerState.PAUSED:
@@ -60,7 +61,7 @@ export default function Player() {
           break;
       }
     },
-    [settings.mode, timer, onEnded]
+    [settings.mode, timer, onExpire]
   );
 
   useEffect(() => {
@@ -81,7 +82,15 @@ export default function Player() {
         player.current.cueVideoById(options);
       }
     }
-  }, [video?.videoId, playerIsReady, setPlayerIsReady, setup]);
+  }, [
+    video?.videoId,
+    playerIsReady,
+    setPlayerIsReady,
+    setup,
+    video?.startSeconds,
+    settings.randomStart,
+    autoplay,
+  ]);
 
   useEffect(() => {
     window.onYouTubeIframeAPIReady = () => {

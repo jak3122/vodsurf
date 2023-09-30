@@ -3,16 +3,26 @@ import { Button } from "@chakra-ui/react";
 import useStreamer from "@/hooks/useStreamer";
 import useVideoStore from "@/store/useVideoStore";
 import useSettings from "@/store/useSettings";
+import useTimer from "@/hooks/useTimer";
+import { useState } from "react";
 
 export default function RandomButton() {
+  const [isFetching, setIsFetching] = useState(false);
   const streamer = useStreamer();
   const settings = useSettings((state) => state.settings);
+  const timer = useTimer();
   const fetchVideos = useVideoStore((state) => state.fetchVideos);
-  const onClick = () => fetchVideos({ streamer: streamer.route, settings });
+  const onClick = async () => {
+    setIsFetching(true);
+    await fetchVideos({ streamer: streamer.route, settings });
+    timer.stop();
+    setIsFetching(false);
+  };
 
   return (
     <Button
       onClick={onClick}
+      isLoading={isFetching}
       cursor="pointer"
       size="sm"
       width="14rem"

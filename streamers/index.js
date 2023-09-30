@@ -18,15 +18,25 @@ const streamers = [
       },
     },
     channels: [
-      { username: "vinesaucefullsauce", channelId: "UC2_IYqb1Tc_8Azh7rByedPA" },
-      { username: "vinesauce", channelId: "UCzORJV8l3FWY4cFO8ot-F2w" },
+      {
+        username: "vinesaucefullsauce",
+        channelId: "UC2_IYqb1Tc_8Azh7rByedPA",
+        title: "Vinesauce: The Full Sauce",
+      },
+      {
+        username: "vinesauce",
+        channelId: "UCzORJV8l3FWY4cFO8ot-F2w",
+        title: "vinesauce",
+      },
       {
         username: "VinesauceTwitchClips",
         channelId: "UCo03CCLE1x34004iBmjcHnA",
+        title: "Vinesauce: Twitch Clips",
       },
       {
         username: "VinesauceTheExtraSauce",
         channelId: "UCHEVjnU0KXhr-HDrlwoBm2g",
+        title: "Vinesauce: The Extra Sauce",
       },
     ],
   },
@@ -50,11 +60,20 @@ const streamers = [
       },
     },
     channels: [
-      { username: "Jerma985", channelId: "UCK3kaNXbB57CLcyhtccV_yw" },
-      { username: "JermaStreamArchive", channelId: "UC2oWuUSd3t3t5O3Vxp4lgAA" },
+      {
+        username: "Jerma985",
+        channelId: "UCK3kaNXbB57CLcyhtccV_yw",
+        title: "Jerma985",
+      },
+      {
+        username: "JermaStreamArchive",
+        channelId: "UC2oWuUSd3t3t5O3Vxp4lgAA",
+        title: "Jerma Stream Archive",
+      },
       {
         username: "SterJermaStreamArchive",
         channelId: "UC4ik7iSQI1DZVqL18t-Tffw",
+        title: "Ster/Jerma Stream Archive",
         videoTitleFilter: (title) =>
           title.toLowerCase().includes("jerma streams"),
       },

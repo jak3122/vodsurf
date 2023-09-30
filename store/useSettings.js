@@ -1,7 +1,6 @@
 "use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import merge from "lodash/merge";
 import streamers from "@/streamers";
 
 export const playerModes = Object.freeze({

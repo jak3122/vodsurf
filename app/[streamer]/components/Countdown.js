@@ -1,8 +1,13 @@
 "use client";
+import { Box } from "@chakra-ui/react";
 import useTimer from "@/hooks/useTimer";
+import useSettings from "@/store/useSettings";
+import { useEffect } from "react";
+import { timerSettingsToSeconds } from "@/util";
 
 export default function Countdown() {
   const timer = useTimer();
+  const settingsTimer = useSettings((state) => state.settings.timer);
   const date = new Date(parseInt(timer.millis, 10));
   const millis = date.getUTCMilliseconds();
   const tenths = Math.floor(millis / 100);
@@ -19,15 +24,25 @@ export default function Countdown() {
   let timeString = showHours ? `${h}:${m}:${s}` : `${m}:${s}`;
   if (showTenths) timeString += `.${tenths}`;
 
-  const classes = [
-    styles.timer,
-    timer.isRunning ? styles.running : "",
-    showTenths ? styles.warning : "",
-  ].join(" ");
+  useEffect(() => {
+    if (!timer.isRunning)
+      timer.setTimeLeft(timerSettingsToSeconds(settingsTimer) * 1000);
+  }, [JSON.stringify(settingsTimer)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <span className={classes} onClick={() => timer.toggle()}>
+    <Box
+      bgColor={showTenths ? "#FF2E2E9C" : "transparent"}
+      borderRadius="4px"
+      cursor="default"
+      fontFamily="monospace"
+      fontSize="1.2rem"
+      lineHeight="100%"
+      opacity={timer.isRunning ? 1 : 0.4}
+      padding="0.2rem 0.5rem"
+      position="absolute"
+      left="18rem"
+    >
       {timeString}
-    </span>
+    </Box>
   );
 }
