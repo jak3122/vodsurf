@@ -502,6 +502,7 @@ export default class Connection {
       .prepare(
         `SELECT
         channelId,
+        channelTitle,
         SUM(viewCount) as views,
         SUM(duration) as duration,
         COUNT() as videos
@@ -509,13 +510,6 @@ export default class Connection {
        GROUP BY channelId`
       )
       .all();
-
-    stats = stats.map((c) => ({
-      ...c,
-      channelName: this.streamer.channels.find(
-        (ch) => ch.channelId === c.channelId
-      ).name,
-    }));
 
     console.timeEnd("stats");
     return stats;

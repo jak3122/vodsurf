@@ -17,12 +17,14 @@ export default function Countdown() {
 
   const showHours = hours > 0;
   const showTenths = timer.millis > 0 && timer.millis < 4000;
+  const isInfinite = timerSettingsToSeconds(settingsTimer) <= 0;
 
   const h = hours < 10 ? `0${hours}` : `${hours}`;
   const m = minutes < 10 && showHours ? `0${minutes}` : `${minutes}`;
   const s = seconds < 10 ? `0${seconds}` : `${seconds}`;
   let timeString = showHours ? `${h}:${m}:${s}` : `${m}:${s}`;
   if (showTenths) timeString += `.${tenths}`;
+  if (isInfinite) timeString = "∞";
 
   useEffect(() => {
     if (!timer.isRunning)
@@ -34,8 +36,8 @@ export default function Countdown() {
       bgColor={showTenths ? "#FF2E2E9C" : "transparent"}
       borderRadius="4px"
       cursor="default"
-      fontFamily="monospace"
-      fontSize="1.2rem"
+      fontFamily={isInfinite ? "body" : "monospace"}
+      fontSize={isInfinite ? "2rem" : "1.2rem"}
       lineHeight="100%"
       opacity={timer.isRunning ? 1 : 0.4}
       padding="0.2rem 0.5rem"

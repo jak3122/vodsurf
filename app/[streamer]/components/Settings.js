@@ -6,11 +6,11 @@ import {
   Button,
   Checkbox,
   CheckboxGroup,
-  Flex,
   Grid,
   HStack,
   Input,
   Modal,
+  ModalBody,
   ModalCloseButton,
   ModalContent,
   ModalFooter,
@@ -25,7 +25,7 @@ import {
   VStack,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 export default function Settings({ modal }) {
@@ -77,104 +77,115 @@ export default function Settings({ modal }) {
   const columns = useBreakpointValue({ base: 1, md: 2 });
 
   return (
-    <Modal isOpen={modal.isOpen} onClose={modal.onClose} size="2xl">
+    <Modal
+      isOpen={modal.isOpen}
+      onClose={modal.onClose}
+      size="3xl"
+      scrollBehavior="inside"
+    >
       <ModalOverlay />
       <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
         <ModalCloseButton />
-        <Grid templateColumns={`repeat(${columns}, 1fr)`} gap={4} p={4}>
-          <Fieldset>
-            <legend>Mode</legend>
-            <RadioGroup value={selectedMode} onChange={handleModeChange}>
-              <HStack spacing="24px">
-                {Object.values(playerModes).map((m) => (
-                  <Radio key={m} value={m}>
-                    {m}
-                  </Radio>
-                ))}
-              </HStack>
-            </RadioGroup>
-          </Fieldset>
-
-          {mode === playerModes.LINKS ? (
+        <ModalBody>
+          <Grid templateColumns={`repeat(${columns}, 1fr)`} gap={4} p={4}>
             <Fieldset>
-              <legend>Count: {count}</legend>
-              <Slider
-                value={selectedCount}
-                onChange={handleCountChange}
-                min={1}
-                max={5}
-                step={1}
-              >
-                <SliderTrack>
-                  <SliderFilledTrack />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
+              <legend>Mode</legend>
+              <RadioGroup value={selectedMode} onChange={handleModeChange}>
+                <HStack spacing="24px">
+                  {Object.values(playerModes).map((m) => (
+                    <Radio key={m} value={m}>
+                      {m}
+                    </Radio>
+                  ))}
+                </HStack>
+              </RadioGroup>
             </Fieldset>
-          ) : (
-            <Box />
-          )}
 
-          <Fieldset>
-            <legend>Strategy</legend>
-            <RadioGroup
-              value={selectedStrategy}
-              onChange={handleStrategyChange}
-            >
+            {mode === playerModes.LINKS ? (
+              <Fieldset>
+                <legend>Links: {count}</legend>
+                <Slider
+                  value={selectedCount}
+                  onChange={handleCountChange}
+                  min={1}
+                  max={5}
+                  step={1}
+                >
+                  <SliderTrack>
+                    <SliderFilledTrack />
+                  </SliderTrack>
+                  <SliderThumb />
+                </Slider>
+              </Fieldset>
+            ) : (
+              <Box />
+            )}
+
+            <Fieldset>
+              <legend>Strategy</legend>
+              <RadioGroup
+                value={selectedStrategy}
+                onChange={handleStrategyChange}
+              >
+                <VStack align="start">
+                  <Radio value="by_duration">by duration</Radio>
+                  <Radio value="by_video">by video</Radio>
+                  <Radio value="greatest_hits">greatest hits</Radio>
+                  <Radio value="hidden_gems">hidden gems</Radio>
+                </VStack>
+              </RadioGroup>
+            </Fieldset>
+
+            <Fieldset>
+              <legend>Channels</legend>
+              <CheckboxGroup
+                value={selectedChannels}
+                onChange={handleChannelChange}
+              >
+                <VStack align="start">
+                  {streamer.channels.map((channel) => (
+                    <Checkbox key={channel.channelId} value={channel.channelId}>
+                      {channel.title}
+                    </Checkbox>
+                  ))}
+                </VStack>
+              </CheckboxGroup>
+            </Fieldset>
+
+            <Fieldset>
+              <legend>Options</legend>
               <VStack align="start">
-                <Radio value="by_duration">by duration</Radio>
-                <Radio value="by_video">by video</Radio>
-                <Radio value="greatest_hits">greatest hits</Radio>
-                <Radio value="hidden_gems">hidden gems</Radio>
+                <Checkbox {...register("autoplay")}>Autoplay</Checkbox>
+                <Checkbox {...register("randomStart")}>
+                  Random timestamp
+                </Checkbox>
               </VStack>
-            </RadioGroup>
-          </Fieldset>
+            </Fieldset>
 
-          <Fieldset>
-            <legend>Channels</legend>
-            <CheckboxGroup
-              value={selectedChannels}
-              onChange={handleChannelChange}
-            >
-              <VStack align="start">
-                {streamer.channels.map((channel) => (
-                  <Checkbox key={channel.channelId} value={channel.channelId}>
-                    {channel.title}
-                  </Checkbox>
-                ))}
-              </VStack>
-            </CheckboxGroup>
-          </Fieldset>
-
-          <Fieldset>
-            <legend>Options</legend>
-            <VStack align="start">
-              <Checkbox {...register("autoplay")}>Autoplay</Checkbox>
-              <Checkbox {...register("randomStart")}>Random Start</Checkbox>
-            </VStack>
-          </Fieldset>
-
-          <Fieldset direction="column">
-            <legend>Timer</legend>
-            <HStack spacing={4} align="center">
-              <HStack spacing={1} align="center">
-                <Text>H</Text>
-                <Input {...register("timer.h")} type="number" />
+            <Fieldset direction="column">
+              <legend>Endless mode timer</legend>
+              <HStack spacing={4} align="center">
+                <HStack spacing={1} align="center">
+                  <Text>H</Text>
+                  <TimerField {...register("timer.h")} />
+                </HStack>
+                <HStack spacing={1} align="center">
+                  <Text>M</Text>
+                  <TimerField {...register("timer.m")} />
+                </HStack>
+                <HStack spacing={1} align="center">
+                  <Text>S</Text>
+                  <TimerField {...register("timer.s")} />
+                </HStack>
               </HStack>
-              <HStack spacing={1} align="center">
-                <Text>M</Text>
-                <Input {...register("timer.m")} type="number" />
-              </HStack>
-              <HStack spacing={1} align="center">
-                <Text>S</Text>
-                <Input {...register("timer.s")} type="number" />
-              </HStack>
-            </HStack>
-          </Fieldset>
-        </Grid>
+            </Fieldset>
+          </Grid>
+        </ModalBody>
 
-        <ModalFooter>
-          <Button type="submit">Save</Button>
+        <ModalFooter justifyContent="center">
+          <Button type="submit" colorScheme="blue">
+            Save
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
@@ -188,3 +199,15 @@ function Fieldset({ children, ...props }) {
     </Box>
   );
 }
+
+const TimerField = forwardRef(({ children, ...props }, ref) => {
+  return (
+    <Input
+      type="number"
+      onClick={(e) => e.target.select()}
+      {...props}
+      ref={ref}
+    />
+  );
+});
+TimerField.displayName = "TimerField";

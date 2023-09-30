@@ -1,4 +1,3 @@
-"use client";
 import Links from "@/app/[streamer]/components/content/Links";
 import Player from "@/app/[streamer]/components/content/Player";
 import Stats from "@/app/[streamer]/components/content/Stats";

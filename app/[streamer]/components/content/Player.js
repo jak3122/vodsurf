@@ -48,19 +48,18 @@ export default function Player() {
       if (settings.mode !== "endless") return;
       switch (state) {
         case window.YT.PlayerState.ENDED:
-          if (timer.isRunning) {
-            timer.pause();
-            onExpire();
-          }
+          timer.pause();
+          onExpire();
           break;
         case window.YT.PlayerState.PAUSED:
           timer.pause();
           break;
         case window.YT.PlayerState.PLAYING:
-          timer.start();
+          timerSettingsToSeconds(settings.timer) > 0 && timer.start();
           break;
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [settings.mode, timer, onExpire]
   );
 
