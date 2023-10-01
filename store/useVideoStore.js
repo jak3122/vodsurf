@@ -20,6 +20,9 @@ const videoStore = create((set) => ({
     const videos = await res.json();
     set({ videos });
   },
+
+  isVideoLoading: false,
+  setIsVideoLoading: (isVideoLoading) => set({ isVideoLoading }),
 }));
 
 export default videoStore;
