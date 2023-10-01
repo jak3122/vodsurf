@@ -47,6 +47,7 @@ export default function Player() {
   const onPlayerStateChange = useCallback(
     ({ data: state }) => {
       if (state === window.YT.PlayerState.PLAYING) setIsVideoLoading(false);
+      if (state === window.YT.PlayerState.CUED) setIsVideoLoading(false);
       if (settings.mode !== "endless") return;
       switch (state) {
         case window.YT.PlayerState.ENDED:
