@@ -29,6 +29,7 @@
     "react": "latest",
     "react-dom": "latest",
     "react-hook-form": "^7.46.2",
+    "react-spinners": "^0.13.8",
     "yargs": "^17.7.2",
     "zustand": "^4.4.1"
   },

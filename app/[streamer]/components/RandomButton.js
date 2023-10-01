@@ -1,5 +1,13 @@
 "use client";
 import { Button } from "@chakra-ui/react";
+
+import ScaleLoader from "react-spinners/ScaleLoader";
+import SyncLoader from "react-spinners/SyncLoader";
+import RiseLoader from "react-spinners/RiseLoader";
+import GridLoader from "react-spinners/GridLoader";
+import BeatLoader from "react-spinners/BeatLoader";
+import PulseLoader from "react-spinners/PulseLoader";
+
 import useStreamer from "@/hooks/useStreamer";
 import useVideoStore from "@/store/useVideoStore";
 import useSettings from "@/store/useSettings";
@@ -22,10 +30,21 @@ export default function RandomButton() {
   let label = `Random ${streamer.name}`;
   if (settings.mode === "endless") label = `Endless ${streamer.name}`;
 
+  const Loader = (
+    <BeatLoader.default
+      color={streamer.theme.button.text}
+      size={6}
+      cssOverride={{
+        opacity: 0.5,
+      }}
+    />
+  );
+
   return (
     <Button
       onClick={onClick}
       isLoading={isVideoLoading}
+      spinner={Loader}
       cursor="pointer"
       size="sm"
       width="14rem"
