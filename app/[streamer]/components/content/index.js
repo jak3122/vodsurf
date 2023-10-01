@@ -1,11 +1,10 @@
 import Links from "@/app/[streamer]/components/content/Links";
 import Player from "@/app/[streamer]/components/content/Player";
-import Stats from "@/app/[streamer]/components/content/Stats";
 import useSettings, { playerModes } from "@/store/useSettings";
 import useVideoStore from "@/store/useVideoStore";
 import { useEffect, useState } from "react";
 
-export default function Content() {
+export default function Content({ children }) {
   const mode = useSettings((state) => state.settings.mode);
   const videos = useVideoStore((state) => state.videos);
   const [playerMode, setPlayerMode] = useState(null);
@@ -21,5 +20,5 @@ export default function Content() {
     videos?.length > 0
   )
     return <Player />;
-  return <Stats />;
+  return <div>{children}</div>;
 }

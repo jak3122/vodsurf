@@ -1,3 +1,6 @@
+import StatsClient from "@/app/[streamer]/components/content/StatsClient";
+import stats from "@/db/stats";
+
 export default function Stats() {
-  return <div>test</div>;
+  return <StatsClient stats={stats()} />;
 }
