@@ -34,6 +34,7 @@ export async function GET(request) {
 
   const videos = streamer.randomVideos(channels, strategy, count);
   const response = videos.map((video) => pick(video, responseFields));
+  // response[0].videoId = "OXT5NNRKNQM"; // age-resticted
   console.log(response);
 
   console.timeEnd(`random video: ${strategy}, ${count}`);

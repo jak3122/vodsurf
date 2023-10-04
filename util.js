@@ -4,7 +4,6 @@ export function timerSettingsToSeconds({ h, m, s }) {
 }
 
 export function sumStats(stats, selectedChannels) {
-  console.log("selectedChannels", selectedChannels);
   stats = stats.filter((stat) => selectedChannels.includes(stat.channelId));
   const channels = stats.length;
 

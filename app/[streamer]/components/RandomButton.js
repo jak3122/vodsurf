@@ -23,8 +23,12 @@ export default function RandomButton() {
   const onClick = async () => {
     setIsVideoLoading(true);
     await fetchVideos({ streamer: streamer.route, settings });
+    const timerId = setTimeout(() => {
+      setIsVideoLoading(false);
+    }, 300);
     if (settings.mode === "links") setIsVideoLoading(false);
     timer.stop();
+    return () => clearTimeout(timerId);
   };
 
   let label = `Random ${streamer.name}`;

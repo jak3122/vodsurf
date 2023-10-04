@@ -13,7 +13,6 @@ export default function Player() {
   const settings = useSettings((state) => state.settings);
   const fetchVideos = useVideoStore((state) => state.fetchVideos);
   const video = useVideoStore((state) => state.videos[0]);
-  const setIsVideoLoading = useVideoStore((state) => state.setIsVideoLoading);
   const timer = useTimer();
   const onExpire = useCallback(
     () => fetchVideos({ streamer: streamer.route, settings }),
@@ -46,8 +45,6 @@ export default function Player() {
 
   const onPlayerStateChange = useCallback(
     ({ data: state }) => {
-      if (state === window.YT.PlayerState.PLAYING) setIsVideoLoading(false);
-      if (state === window.YT.PlayerState.CUED) setIsVideoLoading(false);
       if (settings.mode !== "endless") return;
       switch (state) {
         case window.YT.PlayerState.ENDED:
