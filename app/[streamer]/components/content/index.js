@@ -13,12 +13,11 @@ export default function Content({ children }) {
     setPlayerMode(mode);
   }, [mode]);
 
-  if (!playerMode) return null;
-  if (playerMode === playerModes.LINKS) return <Links>{children}</Links>;
-  if (
-    [playerModes.VIDEO, playerModes.ENDLESS].includes(playerMode) &&
-    videos?.length > 0
-  )
+  if (!playerMode || videos?.length === 0)
+    return <div style={{ flex: "1" }}>{children}</div>;
+
+  if (playerMode === playerModes.LINKS) return <Links />;
+  if ([playerModes.VIDEO, playerModes.ENDLESS].includes(playerMode))
     return <Player />;
   return <div>{children}</div>;
 }
