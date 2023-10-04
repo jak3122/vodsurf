@@ -5,18 +5,16 @@ import streamers from "@/streamers";
 
 export default function Home() {
   return (
-    <Container maxWidth="container.xl">
-      <Container h="100vh" w="full">
-        <Center h="full" w="full">
-          <HStack spacing={4}>
-            {streamers.map(({ name, route }) => (
-              <Link href={`/${route}`} key={route}>
-                {name}
-              </Link>
-            ))}
-          </HStack>
-        </Center>
-      </Container>
+    <Container maxWidth="container.xl" h="100vh">
+      <Center h="full" w="full">
+        <HStack spacing={4}>
+          {streamers.map(({ name, route }) => (
+            <Link href={`/${route}`} key={route}>
+              {name}
+            </Link>
+          ))}
+        </HStack>
+      </Center>
     </Container>
   );
 }
