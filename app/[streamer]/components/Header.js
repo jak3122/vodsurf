@@ -26,8 +26,6 @@ export default function Header() {
     <Flex
       h="3rem"
       w="full"
-      top="0"
-      position="sticky"
       justifyContent="center"
       bg={streamer.theme.primary}
       borderBottom="5px solid"
