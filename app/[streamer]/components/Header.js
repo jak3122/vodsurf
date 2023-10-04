@@ -24,7 +24,7 @@ export default function Header() {
 
   return (
     <Flex
-      h="3rem"
+      h="46px"
       w="full"
       justifyContent="center"
       bg={streamer.theme.primary}

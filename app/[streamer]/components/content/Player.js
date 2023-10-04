@@ -100,7 +100,14 @@ export default function Player() {
   return (
     <>
       <Script id="yt-script" src="https://www.youtube.com/iframe_api" />
-      <div id="yt-player" style={{ height: "100%", width: "100%" }} />
+      <span
+        style={{
+          width: "100%",
+          flex: "1",
+        }}
+      >
+        <div id="yt-player" style={{ height: "100%", width: "100%" }} />
+      </span>
     </>
   );
 }

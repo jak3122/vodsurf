@@ -19,11 +19,11 @@ import { useEffect, useState } from "react";
 
 const { format } = new Intl.NumberFormat();
 
-export default function Links() {
+export default function Links({ children }) {
   const videos = useVideoStore((state) => state.videos);
   const settings = useSettings((state) => state.settings);
 
-  if (!videos || !videos?.length) return null;
+  if (!videos || !videos?.length) return <div>{children}</div>;
 
   return (
     <Box h="full" w="full" overflow="auto">
