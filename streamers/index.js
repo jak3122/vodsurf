@@ -55,7 +55,7 @@ const streamers = [
         border: "black",
         text: "black",
         hover: {
-          bg: "#5bc2c9e0",
+          bg: "#5dcfd7",
         },
       },
     },
