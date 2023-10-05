@@ -27,8 +27,8 @@ jobs:
           PORT: ${{ secrets.PORT }}
           KEY: ${{ secrets.SSHKEY }}
           script: |
-            export SHELL=/bin/bash
-            source ~/.bashrc
-            cd ~/vodsurf
-            pnpm deploy
-            npm run start-apps
+            bash -l -c "
+              cd ~/vodsurf
+              npm run deploy
+              npm run start-apps
+            "
