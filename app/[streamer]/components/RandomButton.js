@@ -1,5 +1,5 @@
 "use client";
-import { Button } from "@chakra-ui/react";
+import { Box, Button } from "@chakra-ui/react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import BeatLoader from "react-spinners/BeatLoader";
@@ -31,9 +31,6 @@ export default function RandomButton() {
   useHotkeys("r", () => {
     onClick();
   });
-
-  let label = `Random ${streamer.name}`;
-  if (settings.mode === "endless") label = `Endless ${streamer.name}`;
 
   const Loader = (
     <BeatLoader.default
@@ -68,7 +65,10 @@ export default function RandomButton() {
         boxShadow: "1px 1px 3px rgba(0, 0, 0, 0.1)",
       }}
     >
-      {label}
+      <Box as="span" textDecor="underline">
+        R
+      </Box>
+      andom {streamer.name}
     </Button>
   );
 }
