@@ -1,17 +1,13 @@
 "use client";
 import { Button } from "@chakra-ui/react";
+import { useHotkeys } from "react-hotkeys-hook";
 
-import ScaleLoader from "react-spinners/ScaleLoader";
-import SyncLoader from "react-spinners/SyncLoader";
-import RiseLoader from "react-spinners/RiseLoader";
-import GridLoader from "react-spinners/GridLoader";
 import BeatLoader from "react-spinners/BeatLoader";
-import PulseLoader from "react-spinners/PulseLoader";
 
 import useStreamer from "@/hooks/useStreamer";
-import useVideoStore from "@/store/useVideoStore";
-import useSettings from "@/store/useSettings";
 import useTimer from "@/hooks/useTimer";
+import useSettings from "@/store/useSettings";
+import useVideoStore from "@/store/useVideoStore";
 
 export default function RandomButton() {
   const streamer = useStreamer();
@@ -30,6 +26,9 @@ export default function RandomButton() {
     timer.stop();
     return () => clearTimeout(timerId);
   };
+  useHotkeys("r", () => {
+    onClick();
+  });
 
   let label = `Random ${streamer.name}`;
   if (settings.mode === "endless") label = `Endless ${streamer.name}`;
