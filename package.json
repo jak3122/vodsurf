@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "yarn && yarn build && yarn db_refresh",
+    "deploy": "pnpm install && pnpm build && pnpm db_refresh",
     "db_populate": "node ./db/sync.js",
     "db_refresh": "node ./db/sync.js --update-only"
   },
