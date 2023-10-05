@@ -79,6 +79,7 @@ function VideoCard({ video }) {
             alt={video.videoTitle}
             objectFit="cover"
             aspectRatio={16 / 9}
+            h="full"
             width="full"
             onLoad={() => setIsLoaded(true)}
           />
