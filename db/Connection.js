@@ -323,14 +323,19 @@ export default class Connection {
       const channels = this.db
         .prepare(
           `SELECT channelId, duration
-         FROM channels
-         WHERE channelId in (${mask(channelIds)})`
+          FROM channels
+          WHERE channelId in (${mask(channelIds)})`
         )
         .all(channelIds);
 
-      const videos = Array(count)
-        .fill()
-        .map((_) => {
+      const fetchedVideosSet = new Set();
+      const videos = [];
+
+      for (let i = 0; i < count; i++) {
+        let retries = 5;
+        let uniqueVideoFound = false;
+
+        while (!uniqueVideoFound && retries > 0) {
           const randChannel = randByWeight(channels, "duration");
           const { channelId, duration } = randChannel;
 
@@ -338,27 +343,40 @@ export default class Connection {
           const selectVideoQuery = this.db
             .prepare(
               `SELECT rowid, durationCumul
-               FROM videos
-               WHERE channelId = ? AND ? > durationCumul
-               ORDER BY durationCumul DESC
-               LIMIT 1
+                FROM videos
+                WHERE channelId = ? AND ? > durationCumul
+                ORDER BY durationCumul DESC
+                LIMIT 1
               `
             )
             .get(channelId, videoRand);
+
           const { rowid } = selectVideoQuery;
-          const video = this.getVideoRowByRowId(rowid);
-          const startSeconds = randInt(0, video.duration);
-          return {
-            ...video,
-            startSeconds,
-          };
-        });
+
+          if (!fetchedVideosSet.has(rowid)) {
+            fetchedVideosSet.add(rowid);
+            const video = this.getVideoRowByRowId(rowid);
+            videos.push({
+              ...video,
+              startSeconds: randInt(0, video.duration),
+            });
+            uniqueVideoFound = true;
+          }
+
+          retries--;
+        }
+
+        if (!uniqueVideoFound) {
+          console.log(
+            "by_duration: Could not find unique video after 5 retries"
+          );
+        }
+      }
 
       return videos;
     });
 
-    const videos = trans(count);
-    return videos;
+    return trans(count);
   }
 
   byVideoCount(channelIds, count) {
@@ -366,14 +384,19 @@ export default class Connection {
       const channels = this.db
         .prepare(
           `SELECT channelId, videoCount
-         FROM channels
-         WHERE channelId in (${mask(channelIds)})`
+          FROM channels
+          WHERE channelId in (${mask(channelIds)})`
         )
         .all(channelIds);
 
-      const videos = Array(count)
-        .fill()
-        .map((_) => {
+      const fetchedVideosSet = new Set();
+      const videos = [];
+
+      for (let i = 0; i < count; i++) {
+        let retries = 5;
+        let uniqueVideoFound = false;
+
+        while (!uniqueVideoFound && retries > 0) {
           const randChannel = randByWeight(channels, "videoCount");
           const { channelId, videoCount } = randChannel;
 
@@ -381,24 +404,35 @@ export default class Connection {
           const selectVideoQuery = this.db
             .prepare(
               `SELECT rowid
-               FROM videos
-               WHERE videoIndex = $videoIndex AND channelId = $channelId`
+                FROM videos
+                WHERE videoIndex = $videoIndex AND channelId = $channelId`
             )
             .get({ videoIndex, channelId });
 
           const { rowid } = selectVideoQuery;
-          const video = this.getVideoRowByRowId(rowid);
-          return {
-            startSeconds: randInt(0, video.duration),
-            ...video,
-          };
-        });
+
+          if (!fetchedVideosSet.has(rowid)) {
+            fetchedVideosSet.add(rowid);
+            const video = this.getVideoRowByRowId(rowid);
+            videos.push({
+              startSeconds: randInt(0, video.duration),
+              ...video,
+            });
+            uniqueVideoFound = true;
+          }
+
+          retries--;
+        }
+
+        if (!uniqueVideoFound) {
+          console.log("by_video: Could not find unique video after 5 retries");
+        }
+      }
 
       return videos;
     });
 
-    const videos = trans(count);
-    return videos;
+    return trans(count);
   }
 
   greatestHits(channelIds, count) {
@@ -406,14 +440,19 @@ export default class Connection {
       const channels = this.db
         .prepare(
           `SELECT channelId, viewCount
-         FROM channels
-         WHERE channelId in (${mask(channelIds)})`
+          FROM channels
+          WHERE channelId in (${mask(channelIds)})`
         )
         .all(channelIds);
 
-      const videos = Array(count)
-        .fill()
-        .map((_) => {
+      const fetchedVideosSet = new Set();
+      const videos = [];
+
+      for (let i = 0; i < count; i++) {
+        let retries = 5;
+        let uniqueVideoFound = false;
+
+        while (!uniqueVideoFound && retries > 0) {
           const randChannel = randByWeight(channels, "viewCount");
           const { channelId, viewCount } = randChannel;
 
@@ -421,27 +460,40 @@ export default class Connection {
           const selectVideoQuery = this.db
             .prepare(
               `SELECT rowid, viewCountCumul
-               FROM videos
-               WHERE channelId = ? AND ? >= viewCountCumul
-               ORDER BY viewCountCumul DESC
-               LIMIT 1
+                FROM videos
+                WHERE channelId = ? AND ? >= viewCountCumul
+                ORDER BY viewCountCumul DESC
+                LIMIT 1
               `
             )
             .get(channelId, videoRand);
 
           const { rowid } = selectVideoQuery;
-          const video = this.getVideoRowByRowId(rowid);
-          return {
-            startSeconds: randInt(0, video.duration),
-            ...video,
-          };
-        });
+
+          if (!fetchedVideosSet.has(rowid)) {
+            fetchedVideosSet.add(rowid);
+            const video = this.getVideoRowByRowId(rowid);
+            videos.push({
+              startSeconds: randInt(0, video.duration),
+              ...video,
+            });
+            uniqueVideoFound = true;
+          }
+
+          retries--;
+        }
+
+        if (!uniqueVideoFound) {
+          console.log(
+            "greatest_hits: Could not find unique video after 5 retries"
+          );
+        }
+      }
 
       return videos;
     });
 
-    const videos = trans(count);
-    return videos;
+    return trans(count);
   }
 
   hiddenGems(channelIds, count) {
@@ -449,15 +501,20 @@ export default class Connection {
       let channels = this.db
         .prepare(
           `SELECT channelId, viewCount
-         FROM channels
-         WHERE channelId in (${mask(channelIds)})`
+          FROM channels
+          WHERE channelId in (${mask(channelIds)})`
         )
         .all(channelIds);
       channels = attachReverseWeights(channels, "viewCount", "viewCountRev");
 
-      const videos = Array(count)
-        .fill()
-        .map((_) => {
+      const fetchedVideosSet = new Set();
+      const videos = [];
+
+      for (let i = 0; i < count; i++) {
+        let retries = 5;
+        let uniqueVideoFound = false;
+
+        while (!uniqueVideoFound && retries > 0) {
           const randChannel = randByWeight(channels, "viewCountRev");
           const { channelId } = randChannel;
 
@@ -481,18 +538,33 @@ export default class Connection {
           `
             )
             .get(channelId, videoRand);
+
           const { rowid } = selectVideoQuery;
-          const video = this.getVideoRowByRowId(rowid);
-          return {
-            startSeconds: randInt(0, video.duration),
-            ...video,
-          };
-        });
+
+          if (!fetchedVideosSet.has(rowid)) {
+            fetchedVideosSet.add(rowid);
+            const video = this.getVideoRowByRowId(rowid);
+            videos.push({
+              ...video,
+              startSeconds: randInt(0, video.duration),
+            });
+            uniqueVideoFound = true;
+          }
+
+          retries--;
+        }
+
+        if (!uniqueVideoFound) {
+          console.log(
+            "hidden_gems: Could not find unique video after 5 retries"
+          );
+        }
+      }
+
       return videos;
     });
 
-    const videos = trans(count);
-    return videos;
+    return trans(count);
   }
 
   /* Stats */
