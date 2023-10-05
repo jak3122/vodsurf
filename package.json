@@ -18,24 +18,24 @@
     "@chakra-ui/react": "^2.8.1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
-    "better-sqlite3": "^8.6.0",
+    "better-sqlite3": "^8.7.0",
     "dayjs": "^1.11.10",
     "dotenv": "^16.3.1",
     "framer-motion": "^10.16.4",
     "googleapis": "^126.0.1",
     "iso8601-duration": "^2.1.1",
     "lodash": "^4.17.21",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-hook-form": "^7.46.2",
+    "next": "^13.5.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.47.0",
     "react-hotkeys-hook": "^4.4.1",
     "react-spinners": "^0.13.8",
     "yargs": "^17.7.2",
-    "zustand": "^4.4.1"
+    "zustand": "^4.4.3"
   },
   "devDependencies": {
-    "eslint": "latest",
-    "eslint-config-next": "latest"
+    "eslint": "^8.50.0",
+    "eslint-config-next": "^13.5.4"
   }
 }
