@@ -9,8 +9,10 @@
     "start": "next start",
     "lint": "next lint",
     "deploy": "pnpm install && pnpm build && pnpm db_refresh",
-    "db_populate": "node ./db/sync.js",
-    "db_refresh": "node ./db/sync.js --update-only"
+    "db_populate": "node ./db/sync.js --full",
+    "db_refresh": "node ./db/sync.js",
+    "start-apps": "pm2 start ecosystem.config.js",
+    "start-update": "pm2 start ecosystem.config.js --only update-script"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",

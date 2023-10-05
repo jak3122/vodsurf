@@ -4,7 +4,7 @@ import connections from "./connections.js";
 
 async function main() {
   const args = yargs(hideBin(process.argv))
-    .option("update-only", {
+    .option("full", {
       type: "boolean",
       describe: "Update with the latest videos",
       default: false,
@@ -18,12 +18,12 @@ async function main() {
     .alias("help", "h").argv;
 
   console.log(
-    args["update-only"] ? "updating with latest videos" : "populating database"
+    args["full"] ? "Doing full database sync..." : "Doing database update..."
   );
 
   for (const connection of Object.values(connections)) {
     await connection.sync({
-      updateOnly: args["update-only"],
+      full: args["full"],
       limit: args.limit,
     });
   }

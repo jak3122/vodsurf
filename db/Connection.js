@@ -26,16 +26,16 @@ export default class Connection {
 
   /* Populate/update */
 
-  async sync({ updateOnly = false, limit = null }) {
+  async sync({ full = false, limit = null }) {
     this.createTables();
     for (const channel of this.streamer.channels) {
-      await this.syncChannel({ channel, updateOnly, limit });
+      await this.syncChannel({ channel, full, limit });
     }
   }
 
   async syncChannel({
     channel: { username, channelId, videoTitleFilter = () => true },
-    updateOnly,
+    full,
     limit,
   }) {
     const channelDetails = await yt.getChannelDetails({ username, channelId });
@@ -72,7 +72,7 @@ export default class Connection {
       // Stop criteria
       if (
         (limit && addedVideos >= limit) ||
-        (updateOnly &&
+        (!full &&
           new Date(videos?.[videos.length - 1]?.publishedAt) <
             new Date(mostRecentinDatabase)) ||
         videos.length < 50
