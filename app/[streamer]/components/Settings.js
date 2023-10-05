@@ -22,9 +22,11 @@ import {
   SliderThumb,
   SliderTrack,
   Text,
+  Tooltip,
   VStack,
   useBreakpointValue,
 } from "@chakra-ui/react";
+import { InfoOutlineIcon } from "@chakra-ui/icons";
 import { forwardRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -128,10 +130,31 @@ export default function Settings({ modal }) {
                 onChange={handleStrategyChange}
               >
                 <VStack align="start">
-                  <Radio value="by_duration">by duration</Radio>
-                  <Radio value="by_video">by video</Radio>
-                  <Radio value="greatest_hits">greatest hits</Radio>
-                  <Radio value="hidden_gems">hidden gems</Radio>
+                  <HStack spacing={2}>
+                    <Radio value="by_duration">by duration</Radio>
+                    <Info>
+                      Videos are weighted by duration (longer videos are more
+                      likely)
+                    </Info>
+                  </HStack>
+                  <HStack spacing={2}>
+                    <Radio value="by_video">by video</Radio>
+                    <Info>Videos are weighted equally</Info>
+                  </HStack>
+                  <HStack spacing={2}>
+                    <Radio value="greatest_hits">greatest hits</Radio>
+                    <Info>
+                      Videos are weighted by view count (more popular videos are
+                      more likely)
+                    </Info>
+                  </HStack>
+                  <HStack spacing={2}>
+                    <Radio value="hidden_gems">hidden gems</Radio>
+                    <Info>
+                      Videos are weighted by inverse view count (less popular
+                      videos are more likely)
+                    </Info>
+                  </HStack>
                 </VStack>
               </RadioGroup>
             </Fieldset>
@@ -211,3 +234,11 @@ const TimerField = forwardRef(({ children, ...props }, ref) => {
   );
 });
 TimerField.displayName = "TimerField";
+
+function Info({ children }) {
+  return (
+    <Tooltip label={children} placement="right" closeOnClick={false} hasArrow>
+      <InfoOutlineIcon />
+    </Tooltip>
+  );
+}
