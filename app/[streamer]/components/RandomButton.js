@@ -19,10 +19,12 @@ export default function RandomButton() {
   const onClick = async () => {
     setIsVideoLoading(true);
     await fetchVideos({ streamer: streamer.route, settings });
-    const timerId = setTimeout(() => {
-      setIsVideoLoading(false);
-    }, 300);
-    if (settings.mode === "links") setIsVideoLoading(false);
+    const timerId = setTimeout(
+      () => {
+        setIsVideoLoading(false);
+      },
+      settings.mode === "links" ? 100 : 300
+    );
     timer.stop();
     return () => clearTimeout(timerId);
   };
