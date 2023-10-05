@@ -30,4 +30,4 @@ jobs:
           script: |
             cd ~/vodsurf
             pnpm deploy
-            pm2 restart vodsurf
+            npm run start-apps
