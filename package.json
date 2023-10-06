@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=512\" next build",
     "start": "next start",
     "lint": "next lint",
     "deploy": "pnpm install && npm run build",
