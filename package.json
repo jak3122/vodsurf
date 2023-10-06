@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "npm run install && npm run build && npm run sync",
+    "deploy": "pnpm install && npm run build",
     "sync-full": "node ./db/sync.js --full",
     "sync": "node ./db/sync.js",
     "start-apps": "pm2 restart ecosystem.config.cjs",
