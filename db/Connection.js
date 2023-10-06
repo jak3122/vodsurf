@@ -148,10 +148,19 @@ export default class Connection {
     if (!videos || !videos.length) return null;
     let inserted = 0;
     const stmt = this.db.prepare(
-      `INSERT OR IGNORE INTO videos
+      `INSERT INTO videos
         (duration, publishedAt, videoId, viewCount, channelId, channelTitle, videoTitle)
-       VALUES
-       ($duration, $publishedAt, $videoId, $viewCount, $channelId, $channelTitle, $videoTitle)`
+      VALUES
+        ($duration, $publishedAt, $videoId, $viewCount, $channelId, $channelTitle, $videoTitle)
+      ON CONFLICT(videoId) 
+      DO UPDATE SET
+        duration = excluded.duration,
+        publishedAt = excluded.publishedAt,
+        viewCount = excluded.viewCount,
+        channelId = excluded.channelId,
+        channelTitle = excluded.channelTitle,
+        videoTitle = excluded.videoTitle;
+        `
     );
     for (const video of videos) {
       inserted += stmt.run(video).changes;

@@ -8,9 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "pnpm install && npm run build && npm run db_refresh",
-    "db_populate": "node ./db/sync.js --full",
-    "db_refresh": "node ./db/sync.js",
+    "deploy": "pnpm install && npm run build && npm run sync",
+    "sync-full": "node ./db/sync.js --full",
+    "sync": "node ./db/sync.js",
     "start-apps": "pm2 restart ecosystem.config.cjs",
     "start-app": "pm2 restart ecosystem.config.cjs --only vodsurf",
     "start-update": "pm2 restart ecosystem.config.cjs --only update-script"

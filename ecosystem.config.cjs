@@ -17,5 +17,13 @@ module.exports = {
       exec_mode: "fork",
       autorestart: false,
     },
+    {
+      name: "update-script-full",
+      script: "./db/sync.js",
+      args: "--full",
+      cron_restart: "0 0 * * *", // every day
+      exec_mode: "fork",
+      autorestart: false,
+    },
   ],
 };
