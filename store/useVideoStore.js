@@ -1,5 +1,6 @@
 "use client";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 function buildURL({ streamer, settings }) {
   const base = "/random";
@@ -13,16 +14,36 @@ function buildURL({ streamer, settings }) {
   return `${base}?${params.join("&")}`;
 }
 
-const videoStore = create((set) => ({
-  videos: [],
-  fetchVideos: async ({ streamer, settings }) => {
-    const res = await fetch(buildURL({ streamer, settings }));
-    const videos = await res.json();
-    set({ videos });
-  },
+const videoStore = create(
+  persist(
+    (set) => ({
+      videos: [],
+      history: [],
 
-  isVideoLoading: false,
-  setIsVideoLoading: (isVideoLoading) => set({ isVideoLoading }),
-}));
+      fetchVideos: async ({ streamer, settings }) => {
+        const res = await fetch(buildURL({ streamer, settings }));
+        const videos = await res.json();
+        set((state) => {
+          const h = state.history?.length ? state.history : [];
+          const history = [...h, ...videos].slice(-50);
+          return { history, videos };
+        });
+      },
+
+      isVideoLoading: false,
+      setIsVideoLoading: (isVideoLoading) => set({ isVideoLoading }),
+
+      clearHistory: () => {
+        set({ history: [] });
+      },
+    }),
+    {
+      name: "history",
+      partialize: (state) => ({
+        history: state.history,
+      }),
+    }
+  )
+);
 
 export default videoStore;

@@ -7,6 +7,7 @@ import useStreamer from "@/hooks/useStreamer";
 import Settings from "@/app/[streamer]/components/Settings";
 import useSettings from "@/store/useSettings";
 import { useEffect, useState } from "react";
+import History from "@/app/[streamer]/components/History";
 
 export default function Header() {
   const streamer = useStreamer();
@@ -26,16 +27,25 @@ export default function Header() {
     <Flex
       h="46px"
       w="full"
-      justifyContent="center"
+      justifyContent="flex-end"
+      position="relative"
       bg={streamer.theme.primary}
       borderBottom="5px solid"
       borderBottomColor={streamer.theme.accent}
     >
-      <Flex alignItems="center" h="full" position="relative">
+      <Flex
+        alignItems="center"
+        h="full"
+        position="absolute"
+        top="50%"
+        left="50%"
+        transform="translate(-50%, -50%)"
+      >
         <RandomButton />
         <SettingsButton modal={settingsModal} />
         {showCountdown && <Countdown />}
       </Flex>
+      <History />
       <Settings modal={settingsModal} />
     </Flex>
   );
