@@ -29,6 +29,7 @@ jobs:
           script: |
             bash -l -c "
               cd ~/vodsurf
-              npm run deploy
+              pnpm install
+              npm run build
               npm run start-apps
             "
