@@ -26,6 +26,7 @@ export default function Header() {
   return (
     <Flex
       h="46px"
+      minH="46px"
       w="full"
       justifyContent="flex-end"
       position="relative"

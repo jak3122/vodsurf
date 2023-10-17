@@ -53,7 +53,10 @@ export default function History() {
         </IconButton>
       </PopoverTrigger>
       <PopoverContent
-        maxHeight="60vh"
+        maxHeight={{
+          base: "calc(100vh - 46px)",
+          md: "60vh",
+        }}
         width={{
           base: "100vw",
           md: "550px",

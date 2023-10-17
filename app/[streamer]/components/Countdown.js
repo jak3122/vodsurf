@@ -42,7 +42,14 @@ export default function Countdown() {
       opacity={timer.isRunning ? 1 : 0.4}
       padding="0.2rem 0.5rem"
       position="absolute"
-      left="18rem"
+      left={{
+        base: "unset",
+        md: "18rem",
+      }}
+      right={{
+        base: "11.5rem",
+        md: "unset",
+      }}
     >
       {timeString}
     </Box>

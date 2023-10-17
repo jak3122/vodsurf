@@ -49,7 +49,10 @@ export default function RandomButton() {
       spinner={Loader}
       cursor="pointer"
       size="sm"
-      width="14rem"
+      width={{
+        base: "11rem",
+        md: "14rem",
+      }}
       padding="0.3rem 1rem"
       borderRadius="1px"
       color={streamer.theme.button.text}
