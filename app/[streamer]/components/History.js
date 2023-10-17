@@ -17,6 +17,7 @@ import {
   PopoverHeader,
   PopoverTrigger,
   UnorderedList,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -25,12 +26,18 @@ export default function History() {
   const [history, setHistory] = useState(null);
   const clearHistory = useVideoStore((state) => state.clearHistory);
   const containerRef = useRef(null);
+  const { isOpen, onToggle, onClose } = useDisclosure();
 
   const toBottom = () => {
     containerRef.current?.scrollTo({
       top: containerRef.current.scrollHeight,
       behavior: "smooth",
     });
+  };
+
+  const onClear = () => {
+    clearHistory();
+    onClose();
   };
 
   useEffect(() => {
@@ -42,12 +49,13 @@ export default function History() {
   }, [storedHistory]);
 
   return (
-    <Popover onOpen={toBottom}>
+    <Popover onOpen={toBottom} isOpen={isOpen} onClose={onClose}>
       <PopoverTrigger>
         <IconButton
           aria-label="History"
           icon={<RepeatClockIcon />}
           variant="link"
+          onClick={onToggle}
         >
           History
         </IconButton>
@@ -74,7 +82,7 @@ export default function History() {
         </PopoverBody>
         {history?.length ? (
           <PopoverFooter as={Flex} justifyContent="flex-end">
-            <Button variant="link" size="sm" onClick={clearHistory}>
+            <Button variant="link" size="sm" onClick={onClear}>
               Clear
             </Button>
           </PopoverFooter>
