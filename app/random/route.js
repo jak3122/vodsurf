@@ -15,7 +15,7 @@ export async function GET(request) {
   );
 
   if (!streamerConfig) {
-    const errMessage = `'streamer' is requireed. Supported streamers: ${streamers
+    const errMessage = `'streamer' is required. Supported streamers: ${streamers
       .map((s) => s.route)
       .join(", ")}`;
     return Response.json({ error: errMessage }, { status: 400 });

@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# [vodsurf.org](https://vodsurf.org)
 
-## Getting Started
+## `/random` api endpoint
 
-First, run the development server:
+The `/random` endpoint returns random videos from specified channels using various strategies.
+
+### Parameters
+
+- `streamer`: The name of the streamer. (Required)
+- `channels`: A list of channel IDs separated by commas, defaults to all of the given streamer's channels. (Optional)
+- `strategy`: Video selection strategy, default is `by_duration`. (Optional)
+- `count`: Number of random videos to return, default is 1. (Optional)
+
+### Example Requests
+
+#### Curl
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+curl "https://vodsurf.org/random?streamer=vine&strategy=by_video&count=3"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+#### JavaScript Fetch
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+```javascript
+fetch("https://vodsurf.org/random?streamer=vine&strategy=by_video&count=3")
+  .then((response) => response.json())
+  .then((data) => console.log(data));
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+#### Python Requests
 
-## Learn More
+```python
+import requests
 
-To learn more about Next.js, take a look at the following resources:
+response = requests.get("https://vodsurf.org/random", params={
+  "streamer": "vine",
+  "strategy": "by_video",
+  "count": 3
+})
+print(response.json())
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Response
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+A JSON array of videos with the following fields:
 
-## Deploy on Vercel
+- `channelId`
+- `channelTitle`
+- `duration`
+- `publishedAt`
+- `startSeconds`
+- `videoId`
+- `videoTitle`
+- `viewCount`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### Example
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```bash
+curl "https://vodsurf.org/random?streamer=vine" | jq
+```
+
+```json
+[
+  {
+    "channelId": "UC2_IYqb1Tc_8Azh7rByedPA",
+    "channelTitle": "Vinesauce: The Full Sauce",
+    "duration": 18589,
+    "publishedAt": "2022-02-25 06:15:08",
+    "startSeconds": 1992,
+    "videoId": "6UJfE9nDPFE",
+    "videoTitle": "[Vinesauce] Vinny - Elden Ring (PART 1)",
+    "viewCount": 211064
+  }
+]
+```
+
+### Errors
+
+- `400 Bad Request` if the `streamer` parameter is missing or unsupported.
+
+## Run locally
+
+### Prerequisities
+
+- [pnpm](https://pnpm.io/installation)
+
+### Install
+
+```bash
+git clone https://github.com/jak3122/vodsurf.git
+cd vodsurf
+pnpm install
+```
+
+```bash
+pnpm dev
+```
+
+### Build database
+
+To build the sqlite database files from the configured streamers' channels:
+
+```bash
+pnpm sync-full
+```
+
+## Custom streamers
+
+All configuration for the streamers and their channels, names, and theme are handled in `streamers/index.js`.
+
+The `channelId` is required for each channel in the config. There's no official way of getting a channel's ID from the YouTube API, so the simplest way seems to be this:
+
+1. Go to a channel's page, e.g. https://www.youtube.com/@vinesaucefullsauce
+2. View the page source
+3. ctrl+f for `rel="canonical"`
+4. There should be only one result, where the `href` will contain the channel ID, e.g. `<link rel="canonical" href="https://www.youtube.com/channel/UC2_IYqb1Tc_8Azh7rByedPA">`
