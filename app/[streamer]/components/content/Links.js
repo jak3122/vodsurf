@@ -67,10 +67,11 @@ function VideoCard({ video }) {
           base: "100%",
           md: "300px",
         }}
+        position="relative"
       >
         <Skeleton
           isLoaded={isLoaded}
-          fadeDuration={0.5}
+          fadeDuration={0.4}
           h="full"
           startColor={streamer.theme.primary}
         >
@@ -84,6 +85,7 @@ function VideoCard({ video }) {
             onLoad={() => setIsLoaded(true)}
           />
         </Skeleton>
+        <TimeBadge video={video} />
       </Box>
       <CardBody>
         <Box minH="50px" w="full">
@@ -111,5 +113,43 @@ function VideoCard({ video }) {
         </Text>
       </CardBody>
     </Card>
+  );
+}
+
+function secondsToDuration(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  const paddedMinutes =
+    hours > 0 ? minutes.toString().padStart(2, "0") : minutes.toString();
+  const paddedSeconds = secs.toString().padStart(2, "0");
+
+  let duration = `${paddedMinutes}:${paddedSeconds}`;
+  if (hours > 0) {
+    duration = `${hours}:${duration}`;
+  }
+
+  return duration;
+}
+
+function TimeBadge({ video }) {
+  const duration = secondsToDuration(video.duration);
+
+  return (
+    <Box position="absolute" bottom="0" right="0" m="8px">
+      <Box
+        bg="rgba(0, 0, 0, 0.6)"
+        color="white"
+        p="1px 4px"
+        fontSize="sm"
+        borderRadius="4px"
+        fontFamily={`"Roboto","Arial",sans-serif`}
+        fontWeight="500"
+        cursor="default"
+      >
+        {duration}
+      </Box>
+    </Box>
   );
 }
