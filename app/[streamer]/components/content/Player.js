@@ -46,7 +46,11 @@ export default function Player() {
   const onPlayerStateChange = useCallback(
     ({ data: state }) => {
       if (settings.mode !== "endless") return;
+      console.log("state", state);
       switch (state) {
+        case window.YT.PlayerState.UNSTARTED:
+          timer.unstarted();
+          break;
         case window.YT.PlayerState.ENDED:
           timer.pause();
           onExpire();

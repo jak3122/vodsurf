@@ -35,6 +35,17 @@ const timerStore = create((set, get) => ({
       get().setup();
     }
   },
+  unstarted: () => {
+    const initialSeconds = timerSettingsToSeconds(
+      useSettings.getState().settings.timer
+    );
+    set({
+      timeLeft: initialSeconds * 1000,
+      startedAt: performance.now(),
+      isRunning: false,
+      isPaused: true,
+    });
+  },
   pause: () => {
     if (!get().isRunning) return;
     set({ isRunning: false, isPaused: true });

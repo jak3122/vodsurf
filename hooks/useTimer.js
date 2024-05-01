@@ -8,6 +8,7 @@ export default function useTimer() {
     isRunning: timerStore((state) => state.isRunning),
     setOnExpire: timerStore((state) => state.setOnExpire),
     start: timerStore((state) => state.start),
+    unstarted: timerStore((state) => state.unstarted),
     stop: timerStore((state) => state.stop),
     pause: timerStore((state) => state.pause),
     resume: timerStore((state) => state.resume),
