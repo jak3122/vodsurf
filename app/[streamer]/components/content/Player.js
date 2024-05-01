@@ -52,6 +52,7 @@ export default function Player() {
           onExpire();
           break;
         case window.YT.PlayerState.PAUSED:
+        case window.YT.PlayerState.BUFFERING:
           timer.pause();
           break;
         case window.YT.PlayerState.PLAYING:
