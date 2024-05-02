@@ -22,6 +22,8 @@ const streamers = [
         username: "vinesaucefullsauce",
         channelId: "UC2_IYqb1Tc_8Azh7rByedPA",
         title: "Vinesauce: The Full Sauce",
+        videoTitleFilter: (title) =>
+          !title.toLowerCase().includes("[vinebooru]"),
       },
       {
         username: "vinesauce",
