@@ -9,6 +9,8 @@ export async function GET(request) {
   let channels = params.getAll("channels");
   let strategy = params.get("strategy") || "by_duration";
   let count = params.get("count");
+  let dateLow = params.get("dateLow");
+  let dateHigh = params.get("dateHigh");
 
   const streamerConfig = streamers.find((s) =>
     s.supportedRoutes.includes(params.get("streamer"))
@@ -34,19 +36,21 @@ export async function GET(request) {
   if (count < 1) count = 1;
   if (count > 10) count = 10;
 
-  console.log(params);
-  console.time(`random video: ${strategy}, ${count}`);
+  const timerLabel = `[${dateLow} - ${dateHigh}] ${strategy}, ${count}`;
+
+  console.log();
+  console.time(timerLabel);
 
   const streamerRoute = streamerConfig?.route;
   const streamer = connections[streamerRoute];
-  console.log("streamer:", params.get("streamer"));
-  console.log("streamerRoute:", streamerRoute);
 
-  const videos = streamer.randomVideos(channels, strategy, count);
+  const videos = streamer.randomVideos(channels, strategy, count, {
+    dateLow,
+    dateHigh,
+  });
   const response = videos.map((video) => pick(video, responseFields));
-  console.log(response);
 
-  console.timeEnd(`random video: ${strategy}, ${count}`);
+  console.timeEnd(timerLabel);
 
   return Response.json(response);
 }

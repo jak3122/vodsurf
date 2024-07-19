@@ -1,6 +1,7 @@
 "use client";
 import useStreamer from "@/hooks/useStreamer";
 import useSettings, { playerModes } from "@/store/useSettings";
+import { InfoOutlineIcon } from "@chakra-ui/icons";
 import {
   Box,
   Button,
@@ -26,7 +27,6 @@ import {
   VStack,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { InfoOutlineIcon } from "@chakra-ui/icons";
 import { forwardRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -200,6 +200,14 @@ export default function Settings({ modal }) {
                   <Text>S</Text>
                   <TimerField {...register("timer.s")} />
                 </HStack>
+              </HStack>
+            </Fieldset>
+
+            <Fieldset gridColumnStart={1} gridColumnEnd={{ base: 1, md: 3 }}>
+              <legend>Date range</legend>
+              <HStack spacing={1}>
+                <Input type="date" {...register("dateLow")} />
+                <Input type="date" {...register("dateHigh")} />
               </HStack>
             </Fieldset>
           </Grid>

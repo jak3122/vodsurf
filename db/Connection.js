@@ -27,6 +27,9 @@ export default class Connection {
   /* Populate/update */
 
   async sync({ full = false, limit = null }) {
+    if (full) {
+      this.dropTables();
+    }
     this.createTables();
     for (const channel of this.streamer.channels) {
       await this.syncChannel({ channel, full, limit });
@@ -88,7 +91,6 @@ export default class Connection {
       const added = this.insertVideos(videos);
 
       if (added) {
-        this.computeVideoIndex(channel.id);
         this.computeCumulativeColumn(channel.id, "duration");
         this.computeCumulativeColumn(channel.id, "viewCount");
         this.computeCumulativeReverseColumn(channel.id, "duration");
@@ -106,7 +108,6 @@ export default class Connection {
     this.db.exec(
       `CREATE TABLE IF NOT EXISTS videos (
         videoId VARCHAR(14) PRIMARY KEY NOT NULL,
-        videoIndex INT,
         duration INT NOT NULL,
         durationCumul INT,
         durationCumulRev INT,
@@ -116,7 +117,8 @@ export default class Connection {
         viewCountCumulRev INT,
         channelId VARCHAR(30) NOT NULL,
         channelTitle VARCHAR(30),
-        videoTitle VARCHAR(100)
+        videoTitle VARCHAR(100),
+        randomValue REAL
       )`
     );
     this.db.exec(
@@ -124,13 +126,14 @@ export default class Connection {
        CREATE INDEX IF NOT EXISTS channelKey1 ON videos (channelId, durationCumul);
        CREATE INDEX IF NOT EXISTS channelKey2 ON videos (channelId, viewCountCumul);
        CREATE INDEX IF NOT EXISTS channelKey3 ON videos (channelId, viewCountCumulRev);
-       CREATE INDEX IF NOT EXISTS channelKey4 ON videos (channelId, videoIndex);
+       CREATE INDEX IF NOT EXISTS coverIndex ON videos (channelId, randomValue, publishedAt);
        CREATE INDEX IF NOT EXISTS publishedKey ON videos (publishedAt);
        CREATE INDEX IF NOT EXISTS durationKey ON videos (duration);
        CREATE INDEX IF NOT EXISTS durationCumulKey ON videos (durationCumul, channelId);
        CREATE INDEX IF NOT EXISTS viewCountKey ON videos (viewCount);
        CREATE INDEX IF NOT EXISTS viewCountCumulKey ON videos (viewCountCumul, channelId);
        CREATE INDEX IF NOT EXISTS viewCountCumulRevKey ON videos (viewCountCumulRev, channelId);
+       CREATE INDEX IF NOT EXISTS randomKey ON videos (randomValue);
       `
     );
     this.db.exec(
@@ -144,14 +147,19 @@ export default class Connection {
     );
   }
 
+  dropTables() {
+    this.db.prepare("DROP TABLE IF EXISTS videos").run();
+    this.db.prepare("DROP TABLE IF EXISTS channels").run();
+  }
+
   insertVideos(videos) {
     if (!videos || !videos.length) return null;
     let inserted = 0;
     const stmt = this.db.prepare(
       `INSERT INTO videos
-        (duration, publishedAt, videoId, viewCount, channelId, channelTitle, videoTitle)
+        (duration, publishedAt, videoId, viewCount, channelId, channelTitle, videoTitle, randomValue)
       VALUES
-        ($duration, $publishedAt, $videoId, $viewCount, $channelId, $channelTitle, $videoTitle)
+        ($duration, $publishedAt, $videoId, $viewCount, $channelId, $channelTitle, $videoTitle, RANDOM())
       ON CONFLICT(videoId) 
       DO UPDATE SET
         duration = excluded.duration,
@@ -159,7 +167,8 @@ export default class Connection {
         viewCount = excluded.viewCount,
         channelId = excluded.channelId,
         channelTitle = excluded.channelTitle,
-        videoTitle = excluded.videoTitle;
+        videoTitle = excluded.videoTitle,
+        randomValue = RANDOM();
         `
     );
     for (const video of videos) {
@@ -173,21 +182,6 @@ export default class Connection {
       .prepare(`SELECT SUM(duration) AS sum FROM videos WHERE channelId in ?`)
       .get([[channelIds]]);
     return Number(query?.sum);
-  }
-
-  computeVideoIndex(channelId) {
-    const rows = this.db
-      .prepare(`SELECT rowid FROM videos WHERE channelId = ?`)
-      .all(channelId);
-
-    const update = this.db.prepare(
-      `UPDATE videos
-     SET videoIndex = $videoIndex WHERE rowid = $rowid`
-    );
-
-    rows.forEach((row, index) => {
-      update.run({ ...row, videoIndex: index });
-    });
   }
 
   computeCumulativeColumn(channelId, column) {
@@ -303,31 +297,31 @@ export default class Connection {
 
   /* Query methods */
 
-  randomVideos(channelIds, strategy, count) {
+  randomVideos(channelIds, strategy, count, dateRange) {
     if (!channelIds) channelIds = this.allChannelIds();
     if (!Array.isArray(channelIds)) channelIds = [channelIds];
 
     let videos;
     switch (strategy) {
       case "by_video":
-        videos = this.byVideoCount(channelIds, count);
+        videos = this.byVideoCount(channelIds, count, dateRange);
         break;
       case "greatest_hits":
-        videos = this.greatestHits(channelIds, count);
+        videos = this.greatestHits(channelIds, count, dateRange);
         break;
       case "hidden_gems":
-        videos = this.hiddenGems(channelIds, count);
+        videos = this.hiddenGems(channelIds, count, dateRange);
         break;
       case "by_duration":
       default:
-        videos = this.byDuration(channelIds, count);
+        videos = this.byDuration(channelIds, count, dateRange);
         break;
     }
 
     return videos;
   }
 
-  byDuration(channelIds, count) {
+  byDuration(channelIds, count, { dateLow, dateHigh }) {
     const trans = this.db.transaction((count) => {
       const channels = this.db
         .prepare(
@@ -348,17 +342,27 @@ export default class Connection {
           const randChannel = randByWeight(channels, "duration");
           const { channelId, duration } = randChannel;
 
-          const videoRand = randInt(0, duration);
+          const randValue = randInt(0, duration);
           const selectVideoQuery = this.db
             .prepare(
-              `SELECT rowid, durationCumul
+              `SELECT rowid
                 FROM videos
-                WHERE channelId = ? AND ? > durationCumul
+                WHERE
+                  channelId = $channelId
+                  AND $randValue > durationCumul
+                  AND publishedAt >= $dateLow
+                  AND publishedAt <= $dateHigh
                 ORDER BY durationCumul DESC
                 LIMIT 1
               `
             )
-            .get(channelId, videoRand);
+            .get({
+              channelId,
+              randValue,
+              dateLow,
+              dateHigh: `${dateHigh} 23:59:59`,
+            });
+          if (!selectVideoQuery) break;
 
           const { rowid } = selectVideoQuery;
 
@@ -374,12 +378,6 @@ export default class Connection {
 
           retries--;
         }
-
-        if (!uniqueVideoFound) {
-          console.log(
-            "by_duration: Could not find unique video after 5 retries"
-          );
-        }
       }
 
       return videos;
@@ -388,7 +386,7 @@ export default class Connection {
     return trans(count);
   }
 
-  byVideoCount(channelIds, count) {
+  byVideoCount(channelIds, count, { dateLow, dateHigh }) {
     const trans = this.db.transaction((count) => {
       const channels = this.db
         .prepare(
@@ -407,18 +405,29 @@ export default class Connection {
 
         while (!uniqueVideoFound && retries > 0) {
           const randChannel = randByWeight(channels, "videoCount");
-          const { channelId, videoCount } = randChannel;
+          const { channelId } = randChannel;
 
-          const videoIndex = randInt(0, videoCount - 1);
-          const selectVideoQuery = this.db
+          const selectVideosQuery = this.db
             .prepare(
               `SELECT rowid
                 FROM videos
-                WHERE videoIndex = $videoIndex AND channelId = $channelId`
+                WHERE
+                  channelId = $channelId
+                  AND randomValue >= (SELECT(RANDOM()))
+                  AND publishedAt >= $dateLow
+                  AND publishedAt <= $dateHigh
+                ORDER BY randomValue
+                LIMIT 1;
+              `
             )
-            .get({ videoIndex, channelId });
+            .get({
+              channelId,
+              dateLow,
+              dateHigh: `${dateHigh} 23:59:59`,
+            });
+          if (!selectVideosQuery) break;
 
-          const { rowid } = selectVideoQuery;
+          const { rowid } = selectVideosQuery;
 
           if (!fetchedVideosSet.has(rowid)) {
             fetchedVideosSet.add(rowid);
@@ -432,10 +441,6 @@ export default class Connection {
 
           retries--;
         }
-
-        if (!uniqueVideoFound) {
-          console.log("by_video: Could not find unique video after 5 retries");
-        }
       }
 
       return videos;
@@ -444,7 +449,7 @@ export default class Connection {
     return trans(count);
   }
 
-  greatestHits(channelIds, count) {
+  greatestHits(channelIds, count, { dateLow, dateHigh }) {
     const trans = this.db.transaction((count) => {
       const channels = this.db
         .prepare(
@@ -465,17 +470,27 @@ export default class Connection {
           const randChannel = randByWeight(channels, "viewCount");
           const { channelId, viewCount } = randChannel;
 
-          const videoRand = randInt(0, viewCount);
+          const randValue = randInt(0, viewCount);
           const selectVideoQuery = this.db
             .prepare(
               `SELECT rowid, viewCountCumul
                 FROM videos
-                WHERE channelId = ? AND ? >= viewCountCumul
+                WHERE
+                  channelId = $channelId
+                  AND $randValue >= viewCountCumul
+                  AND publishedAt >= $dateLow
+                  AND publishedAt <= $dateHigh
                 ORDER BY viewCountCumul DESC
                 LIMIT 1
               `
             )
-            .get(channelId, videoRand);
+            .get({
+              channelId,
+              randValue,
+              dateLow,
+              dateHigh: `${dateHigh} 23:59:59`,
+            });
+          if (!selectVideoQuery) break;
 
           const { rowid } = selectVideoQuery;
 
@@ -491,12 +506,6 @@ export default class Connection {
 
           retries--;
         }
-
-        if (!uniqueVideoFound) {
-          console.log(
-            "greatest_hits: Could not find unique video after 5 retries"
-          );
-        }
       }
 
       return videos;
@@ -505,7 +514,7 @@ export default class Connection {
     return trans(count);
   }
 
-  hiddenGems(channelIds, count) {
+  hiddenGems(channelIds, count, { dateLow, dateHigh }) {
     const trans = this.db.transaction((count) => {
       let channels = this.db
         .prepare(
@@ -536,17 +545,27 @@ export default class Connection {
             .get(channelId);
           const { maxCumul } = maxCumulQuery;
 
-          const videoRand = randInt(0, maxCumul);
+          const randValue = randInt(0, maxCumul);
           const selectVideoQuery = this.db
             .prepare(
-              `SELECT rowid, viewCountCumulRev
-          FROM videos
-          WHERE channelId = ? AND ? > viewCountCumulRev
-          ORDER BY viewCountCumulRev DESC
-          LIMIT 1
+              `SELECT rowid
+                FROM videos
+                WHERE
+                  channelId = $channelId
+                  AND $randValue > viewCountCumulRev
+                  AND publishedAt >= $dateLow
+                  AND publishedAt <= $dateHigh
+                ORDER BY viewCountCumulRev DESC
+                LIMIT 1
           `
             )
-            .get(channelId, videoRand);
+            .get({
+              channelId,
+              randValue,
+              dateLow,
+              dateHigh: `${dateHigh} 23:59:59`,
+            });
+          if (!selectVideoQuery) break;
 
           const { rowid } = selectVideoQuery;
 
@@ -561,12 +580,6 @@ export default class Connection {
           }
 
           retries--;
-        }
-
-        if (!uniqueVideoFound) {
-          console.log(
-            "hidden_gems: Could not find unique video after 5 retries"
-          );
         }
       }
 

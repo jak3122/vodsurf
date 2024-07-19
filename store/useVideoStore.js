@@ -4,7 +4,12 @@ import { persist } from "zustand/middleware";
 
 function buildURL({ streamer, settings }) {
   const base = "/random";
-  const params = [`streamer=${streamer}`, `strategy=${settings.strategy}`];
+  const params = [
+    `streamer=${streamer}`,
+    `strategy=${settings.strategy}`,
+    `dateLow=${settings.dateLow}`,
+    `dateHigh=${settings.dateHigh}`,
+  ];
   if (settings.mode === "links" && settings.count > 1)
     params.push(`count=${settings.count}`);
   const channelIds = settings.channels[streamer];
