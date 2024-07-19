@@ -335,14 +335,16 @@ export default class Connection {
       const videos = [];
 
       for (let i = 0; i < count; i++) {
-        let retries = 5;
-        let uniqueVideoFound = false;
+        const retries = 5;
 
-        while (!uniqueVideoFound && retries > 0) {
+        for (let retry = 0; retry < retries; retry++) {
           const randChannel = randByWeight(channels, "duration");
           const { channelId, duration } = randChannel;
 
           const randValue = randInt(0, duration);
+          const seenIds = fetchedVideosSet.size
+            ? `AND rowid NOT IN (${[...fetchedVideosSet].join(", ")})`
+            : "";
           const selectVideoQuery = this.db
             .prepare(
               `SELECT rowid
@@ -352,6 +354,7 @@ export default class Connection {
                   AND $randValue > durationCumul
                   AND publishedAt >= $dateLow
                   AND publishedAt <= $dateHigh
+                  ${seenIds}
                 ORDER BY durationCumul DESC
                 LIMIT 1
               `
@@ -373,10 +376,9 @@ export default class Connection {
               ...video,
               startSeconds: randInt(0, video.duration),
             });
-            uniqueVideoFound = true;
           }
 
-          retries--;
+          if (videos.length >= count) break;
         }
       }
 
@@ -400,13 +402,15 @@ export default class Connection {
       const videos = [];
 
       for (let i = 0; i < count; i++) {
-        let retries = 5;
-        let uniqueVideoFound = false;
+        const retries = 5;
 
-        while (!uniqueVideoFound && retries > 0) {
+        for (let retry = 0; retry < retries; retry++) {
           const randChannel = randByWeight(channels, "videoCount");
           const { channelId } = randChannel;
 
+          const seenIds = fetchedVideosSet.size
+            ? `AND rowid NOT IN (${[...fetchedVideosSet].join(", ")})`
+            : "";
           const selectVideosQuery = this.db
             .prepare(
               `SELECT rowid
@@ -416,6 +420,7 @@ export default class Connection {
                   AND randomValue >= (SELECT(RANDOM()))
                   AND publishedAt >= $dateLow
                   AND publishedAt <= $dateHigh
+                  ${seenIds}
                 ORDER BY randomValue
                 LIMIT 1;
               `
@@ -436,10 +441,9 @@ export default class Connection {
               startSeconds: randInt(0, video.duration),
               ...video,
             });
-            uniqueVideoFound = true;
           }
 
-          retries--;
+          if (videos.length >= count) break;
         }
       }
 
@@ -463,14 +467,16 @@ export default class Connection {
       const videos = [];
 
       for (let i = 0; i < count; i++) {
-        let retries = 5;
-        let uniqueVideoFound = false;
+        const retries = 5;
 
-        while (!uniqueVideoFound && retries > 0) {
+        for (let retry = 0; retry < retries; retry++) {
           const randChannel = randByWeight(channels, "viewCount");
           const { channelId, viewCount } = randChannel;
 
           const randValue = randInt(0, viewCount);
+          const seenIds = fetchedVideosSet.size
+            ? `AND rowid NOT IN (${[...fetchedVideosSet].join(", ")})`
+            : "";
           const selectVideoQuery = this.db
             .prepare(
               `SELECT rowid, viewCountCumul
@@ -480,6 +486,7 @@ export default class Connection {
                   AND $randValue >= viewCountCumul
                   AND publishedAt >= $dateLow
                   AND publishedAt <= $dateHigh
+                  ${seenIds}
                 ORDER BY viewCountCumul DESC
                 LIMIT 1
               `
@@ -501,10 +508,9 @@ export default class Connection {
               startSeconds: randInt(0, video.duration),
               ...video,
             });
-            uniqueVideoFound = true;
           }
 
-          retries--;
+          if (videos.length >= count) break;
         }
       }
 
@@ -529,10 +535,9 @@ export default class Connection {
       const videos = [];
 
       for (let i = 0; i < count; i++) {
-        let retries = 5;
-        let uniqueVideoFound = false;
+        const retries = 5;
 
-        while (!uniqueVideoFound && retries > 0) {
+        for (let retry = 0; retry < retries; retry++) {
           const randChannel = randByWeight(channels, "viewCountRev");
           const { channelId } = randChannel;
 
@@ -546,6 +551,9 @@ export default class Connection {
           const { maxCumul } = maxCumulQuery;
 
           const randValue = randInt(0, maxCumul);
+          const seenIds = fetchedVideosSet.size
+            ? `AND rowid NOT IN (${[...fetchedVideosSet].join(", ")})`
+            : "";
           const selectVideoQuery = this.db
             .prepare(
               `SELECT rowid
@@ -555,6 +563,7 @@ export default class Connection {
                   AND $randValue > viewCountCumulRev
                   AND publishedAt >= $dateLow
                   AND publishedAt <= $dateHigh
+                  ${seenIds}
                 ORDER BY viewCountCumulRev DESC
                 LIMIT 1
           `
@@ -576,10 +585,9 @@ export default class Connection {
               ...video,
               startSeconds: randInt(0, video.duration),
             });
-            uniqueVideoFound = true;
           }
 
-          retries--;
+          if (videos.length >= count) break;
         }
       }
 
