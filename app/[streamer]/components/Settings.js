@@ -1,7 +1,7 @@
 "use client";
 import useStreamer from "@/hooks/useStreamer";
-import useSettings, { playerModes } from "@/store/useSettings";
-import { InfoOutlineIcon } from "@chakra-ui/icons";
+import useSettings, { defaultSettings, playerModes } from "@/store/useSettings";
+import { CloseIcon, InfoOutlineIcon } from "@chakra-ui/icons";
 import {
   Box,
   Button,
@@ -9,7 +9,10 @@ import {
   CheckboxGroup,
   Grid,
   HStack,
+  IconButton,
   Input,
+  InputGroup,
+  InputRightAddon,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -69,6 +72,14 @@ export default function Settings({ modal }) {
   const handleStrategyChange = (value) => {
     setSelectedStrategy(value);
     setValue("strategy", value);
+  };
+
+  const resetDateLow = () => {
+    setValue("dateLow", defaultSettings.dateLow);
+  };
+
+  const resetDateHigh = () => {
+    setValue("dateHigh", defaultSettings.dateHigh);
   };
 
   const onSubmit = (data) => {
@@ -206,8 +217,33 @@ export default function Settings({ modal }) {
             <Fieldset gridColumnStart={1} gridColumnEnd={{ base: 1, md: 3 }}>
               <legend>Date range</legend>
               <HStack spacing={1}>
-                <Input type="date" {...register("dateLow")} />
-                <Input type="date" {...register("dateHigh")} />
+                <InputGroup>
+                  <Input type="date" {...register("dateLow")} />
+                  <InputRightAddon p={0}>
+                    <IconButton
+                      aria-label="Reset low date"
+                      variant="link"
+                      icon={<CloseIcon />}
+                      onClick={resetDateLow}
+                      width="full"
+                      height="full"
+                    />
+                  </InputRightAddon>
+                </InputGroup>
+                <Box>—</Box>
+                <InputGroup>
+                  <Input type="date" {...register("dateHigh")} />
+                  <InputRightAddon p={0}>
+                    <IconButton
+                      aria-label="Reset high date"
+                      variant="link"
+                      icon={<CloseIcon />}
+                      onClick={resetDateHigh}
+                      width="full"
+                      height="full"
+                    />
+                  </InputRightAddon>
+                </InputGroup>
               </HStack>
             </Fieldset>
           </Grid>

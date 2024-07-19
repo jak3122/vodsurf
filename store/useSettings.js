@@ -1,6 +1,5 @@
 "use client";
 import streamers from "@/streamers";
-import dayjs from "dayjs";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -11,7 +10,7 @@ export const playerModes = Object.freeze({
 });
 
 const SETTINGS_KEY = "settings";
-const defaultSettings = Object.freeze({
+export const defaultSettings = Object.freeze({
   mode: playerModes.VIDEO,
   count: 3,
   strategy: "by_duration",
@@ -26,8 +25,8 @@ const defaultSettings = Object.freeze({
     m: 0,
     s: 30,
   },
-  dateLow: dayjs("2015-01-01").format("YYYY-MM-DD"),
-  dateHigh: dayjs().format("YYYY-MM-DD"),
+  dateLow: null,
+  dateHigh: null,
 });
 
 const useSettings = create(

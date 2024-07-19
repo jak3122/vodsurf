@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import pick from "lodash/pick";
 import connections from "../../db/connections.js";
 import streamers from "../../streamers/index.js";
@@ -9,8 +10,8 @@ export async function GET(request) {
   let channels = params.getAll("channels");
   let strategy = params.get("strategy") || "by_duration";
   let count = params.get("count");
-  let dateLow = params.get("dateLow");
-  let dateHigh = params.get("dateHigh");
+  let dateLow = params.get("dateLow") || "1970-01-01";
+  let dateHigh = params.get("dateHigh") || dayjs().format("YYYY-MM-DD");
 
   const streamerConfig = streamers.find((s) =>
     s.supportedRoutes.includes(params.get("streamer"))

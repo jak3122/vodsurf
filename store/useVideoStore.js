@@ -4,14 +4,11 @@ import { persist } from "zustand/middleware";
 
 function buildURL({ streamer, settings }) {
   const base = "/random";
-  const params = [
-    `streamer=${streamer}`,
-    `strategy=${settings.strategy}`,
-    `dateLow=${settings.dateLow}`,
-    `dateHigh=${settings.dateHigh}`,
-  ];
+  const params = [`streamer=${streamer}`, `strategy=${settings.strategy}`];
   if (settings.mode === "links" && settings.count > 1)
     params.push(`count=${settings.count}`);
+  if (settings.dateLow) params.push(`dateLow=${settings.dateLow}`);
+  if (settings.dateHigh) params.push(`dateHigh=${settings.dateHigh}`);
   const channelIds = settings.channels[streamer];
   if (channelIds?.length > 0)
     channelIds.forEach((id) => params.push(`channels=${id}`));
