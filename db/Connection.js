@@ -180,14 +180,18 @@ export default class Connection {
         orderMethod = "RANDOM()";
         break;
       case "greatest_hits":
-        orderMethod = "RANDOM() * viewCount";
+        // without taking the log of the value, the random results will
+        // be heavily dominated by the highest-viewcount videos.
+        // adjusting the pow() allows for more even distributions
+        // near 0 or more weighting towards 1.
+        orderMethod = "RANDOM() * pow((1 + log(viewCount)), 1.0)";
         break;
       case "hidden_gems":
-        orderMethod = "RANDOM() * 1.0 / viewCount";
+        orderMethod = "RANDOM() * 1.0 / pow((1 + log(viewCount)), 0.5)";
         break;
       case "by_duration":
       default:
-        orderMethod = "RANDOM() * duration";
+        orderMethod = "RANDOM() * pow((1 + log(duration)), 1.0)";
         break;
     }
 
