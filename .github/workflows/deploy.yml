@@ -30,6 +30,7 @@ jobs:
             bash -l -c "
               cd ~/vodsurf
               pnpm install
-              npm run build
-              npm run start-apps
+              pnpm run build
+              pnpm run start-web
+              pnpm run start-update
             "
