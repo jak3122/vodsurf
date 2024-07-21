@@ -31,6 +31,5 @@ jobs:
               cd ~/vodsurf
               pnpm install
               npm run build
-              pnpm run sync-full
               npm run start-apps
             "
