@@ -181,9 +181,10 @@ export default class Connection {
         break;
       case "greatest_hits":
         // without taking the log of the value, the random results will
-        // be heavily dominated by the highest-viewcount videos.
-        // adjusting the pow() allows for more even distributions
-        // near 0 or more weighting towards 1.
+        // be heavily dominated by the few videos at the very top
+        // of the distribution.
+        // adjusting the pow() further allows for more even distributions
+        // by using a value near 0, or heavier weighting towards 1.
         orderMethod = "RANDOM() * pow((1 + log(viewCount)), 1.0)";
         break;
       case "hidden_gems":
