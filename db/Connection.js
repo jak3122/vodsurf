@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 import streamers from "../streamers/index.js";
-import { attachReverseWeights, mask, randByWeight, randInt } from "./util.js";
+import { mask, randByWeight, randInt, randUniform } from "./util.js";
 import yt from "./youtube.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,9 +15,14 @@ if (!fs.existsSync(dataDir)) {
 }
 
 export default class Connection {
-  constructor(streamerName) {
-    this.db = new Database(path.join(dataDir, `${streamerName}.db`));
-    this.streamer = streamers.find((s) => s.route === streamerName);
+  constructor(streamerName, db) {
+    if (streamerName) {
+      this.db = new Database(path.join(dataDir, `${streamerName}.db`));
+      this.streamer = streamers.find((s) => s.route === streamerName);
+    }
+    if (db) {
+      this.db = db;
+    }
   }
 
   allChannelIds() {
@@ -105,17 +110,15 @@ export default class Connection {
         viewCount INT,
         channelId VARCHAR(30) NOT NULL,
         channelTitle VARCHAR(30),
-        videoTitle VARCHAR(100),
-        randomValue REAL
+        videoTitle VARCHAR(100)
       )`
     );
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS videoKey ON videos (videoId);
-       CREATE INDEX IF NOT EXISTS coverIndex ON videos (channelId, randomValue, publishedAt);
+       CREATE INDEX IF NOT EXISTS coverIndex ON videos (channelId, publishedAt);
        CREATE INDEX IF NOT EXISTS publishedKey ON videos (publishedAt);
        CREATE INDEX IF NOT EXISTS durationKey ON videos (duration);
        CREATE INDEX IF NOT EXISTS viewCountKey ON videos (viewCount);
-       CREATE INDEX IF NOT EXISTS randomKey ON videos (randomValue);
       `
     );
   }
@@ -174,47 +177,50 @@ export default class Connection {
     if (!channelIds) channelIds = this.allChannelIds();
     if (!Array.isArray(channelIds)) channelIds = [channelIds];
 
-    let orderMethod = "RANDOM()";
+    let column = null;
+    let key = null;
     switch (strategy) {
-      case "by_video":
-        orderMethod = "RANDOM()";
+      case "by_duration":
+        column = key = "duration";
         break;
       case "greatest_hits":
-        // without taking the log of the value, the random results will
-        // be heavily dominated by the few videos at the very top
-        // of the distribution.
-        // adjusting the pow() further allows for more even distributions
-        // by using a value near 0, or heavier weighting towards 1.
-        orderMethod = "RANDOM() * pow((1 + log(viewCount)), 1.0)";
+        column = key = "viewCount";
         break;
       case "hidden_gems":
-        orderMethod = "RANDOM() * 1.0 / pow((1 + log(viewCount)), 0.5)";
+        column = "1.0 / viewCount AS viewCountInverse";
+        key = "viewCountInverse";
         break;
-      case "by_duration":
+      case "by_video":
       default:
-        orderMethod = "RANDOM() * pow((1 + log(duration)), 1.0)";
         break;
     }
 
     const videos = this.db.transaction(() => {
-      const videos = this.db
-        .prepare(
-          `SELECT rowid, *
-                FROM videos
-                WHERE channelId IN (${mask(channelIds)})
-                  AND publishedAt BETWEEN $dateLow and $dateHigh
-                ORDER BY ${orderMethod}
-                LIMIT ${count}
-              `
-        )
-        .all([...channelIds], {
-          dateLow,
-          dateHigh: `${dateHigh} 23:59:59`,
-        });
+      const stmt = this.db.prepare(
+        `SELECT rowid, ${column}
+          FROM videos
+          WHERE channelId IN (${mask(channelIds)})
+            AND publishedAt BETWEEN $dateLow and $dateHigh
+        `
+      );
+      const queryVideos = stmt.all([...channelIds], {
+        dateLow,
+        dateHigh: `${dateHigh} 23:59:59`,
+      });
 
-      return videos.map((v) => ({
+      let selectedVideos = key
+        ? randByWeight(queryVideos, key, count)
+        : randUniform(queryVideos, count);
+
+      const rowids = selectedVideos.map((v) => v.rowid);
+      const getStmt = this.db.prepare(
+        `SELECT * FROM videos WHERE rowid IN (${mask(rowids)})`
+      );
+      selectedVideos = getStmt.all([...rowids]);
+
+      return selectedVideos.map((v) => ({
         ...v,
-        startSeconds: randInt(0, v.duration),
+        timestamp: randInt(0, v.duration),
       }));
     })();
 
