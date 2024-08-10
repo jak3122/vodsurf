@@ -133,9 +133,9 @@ export default class Connection {
     let inserted = 0;
     const stmt = this.db.prepare(
       `INSERT INTO videos
-        (duration, publishedAt, videoId, viewCount, channelId, channelTitle, videoTitle, randomValue)
+        (duration, publishedAt, videoId, viewCount, channelId, channelTitle, videoTitle)
       VALUES
-        ($duration, $publishedAt, $videoId, $viewCount, $channelId, $channelTitle, $videoTitle, RANDOM())
+        ($duration, $publishedAt, $videoId, $viewCount, $channelId, $channelTitle, $videoTitle)
       ON CONFLICT(videoId) 
       DO UPDATE SET
         duration = excluded.duration,
@@ -143,8 +143,7 @@ export default class Connection {
         viewCount = excluded.viewCount,
         channelId = excluded.channelId,
         channelTitle = excluded.channelTitle,
-        videoTitle = excluded.videoTitle,
-        randomValue = RANDOM();
+        videoTitle = excluded.videoTitle;
         `
     );
     for (const video of videos) {
