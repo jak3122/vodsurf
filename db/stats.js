@@ -3,22 +3,21 @@ import cache from "./cache";
 
 const statsKey = "stats";
 
-export default async function stats() {
-  let cachedStats = cache.get(statsKey);
-  if (cachedStats) {
-    return cachedStats;
+export default function stats() {
+  let stats = cache.get(statsKey);
+  if (!stats) {
+    stats = _stats();
+    cache.set(statsKey, stats);
   }
 
-  const allStats = await _stats();
-  cache.set(statsKey, allStats);
-  return allStats;
+  return stats;
 }
 
-async function _stats() {
+function _stats() {
   const stats = [];
   for (const connection in connections) {
-    const connectionStats = await connections[connection].getStats();
-    stats.push(...connectionStats);
+    stats.push(...connections[connection].getStats());
   }
+
   return stats;
 }

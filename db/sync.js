@@ -1,6 +1,7 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import connections from "./connections.js";
+import streamers from "../streamers/index.js";
+import Connection from "./Connection.js";
 import { createDbClient } from "./client.js";
 
 async function main() {
@@ -23,12 +24,17 @@ async function main() {
   );
 
   if (args["full"]) {
-    const db = createDbClient();
-    await db.execute("DROP TABLE IF EXISTS videos");
-    await db.execute("DROP TABLE IF EXISTS channels");
+    const db = createDbClient({ readonly: false, fileMustExist: false });
+    db.prepare("DROP TABLE IF EXISTS videos").run();
+    db.prepare("DROP TABLE IF EXISTS channels").run();
+    db.close();
   }
 
-  for (const connection of Object.values(connections)) {
+  for (const streamer of streamers) {
+    const connection = new Connection(streamer.route, {
+      readonly: false,
+      fileMustExist: false,
+    });
     await connection.sync({
       full: args["full"],
       limit: args.limit,
