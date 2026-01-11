@@ -1,12 +1,12 @@
-const fs = require("fs");
-const path = require("path");
-const { execSync } = require("child_process");
+import { existsSync, mkdirSync } from "fs";
+import { join, dirname } from "path";
+import { execSync } from "child_process";
 
-const dbPath = path.join(process.cwd(), "data", "vodsurf.db");
-const dataDir = path.dirname(dbPath);
+const dbPath = join(process.cwd(), "data", "vodsurf.db");
+const dataDir = dirname(dbPath);
 
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+if (!existsSync(dataDir)) {
+  mkdirSync(dataDir, { recursive: true });
 }
 
 const DOWNLOAD_URL =
