@@ -7,10 +7,9 @@ export function createDbClient({ readonly = true, fileMustExist = true } = {}) {
   const dbPath = path.join(dataDir, "vodsurf.db");
 
   fs.mkdirSync(dataDir, { recursive: true });
+  console.log("Data directory contents:", fs.readdirSync(dataDir));
 
   const db = new Database(dbPath, { readonly, fileMustExist });
-
-  db.pragma("journal_mode = WAL");
 
   return db;
 }
