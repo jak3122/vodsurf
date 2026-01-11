@@ -2,7 +2,7 @@ import assert from "assert";
 import Connection from "./Connection.js";
 import { uniqueByKey } from "./util.js";
 
-function createTestVideos(
+async function createTestVideos(
   connection,
   num = 10_000,
   strategy = "by_duration",
@@ -11,15 +11,14 @@ function createTestVideos(
   dateHigh = "2024-01-01",
   channels = null
 ) {
-  const results = new Array(num)
-    .fill()
-    .map(() =>
-      connection.randomVideos(channels, strategy, count, {
-        dateLow,
-        dateHigh,
-      })
-    )
-    .flat();
+  const results = [];
+  for (let i = 0; i < num; i++) {
+    const videos = await connection.randomVideos(channels, strategy, count, {
+      dateLow,
+      dateHigh,
+    });
+    results.push(...videos);
+  }
   return results;
 }
 
@@ -47,17 +46,14 @@ describe("randomVideos", function () {
   let num = 10_000;
   this.timeout(0);
 
-  before(() => {
+  before(async () => {
     connection = new Connection("jerma");
+    await connection.createTables();
     channels = null;
   });
 
-  after(() => {
-    connection.db.close();
-  });
-
-  it("should return a valid video and timestamp", () => {
-    const [result] = connection.randomVideos(channels, "by_duration", 1, {
+  it("should return a valid video and timestamp", async () => {
+    const [result] = await connection.randomVideos(channels, "by_duration", 1, {
       dateLow: "2023-01-01",
       dateHigh: "2023-02-31",
     });
@@ -72,8 +68,8 @@ describe("randomVideos", function () {
     assert(result.timestamp >= 0, "Timestamp should be non-negative");
   });
 
-  it("should distribute selections uniformly for by_video", () => {
-    const results = createTestVideos(connection, num, "by_video");
+  it("should distribute selections uniformly for by_video", async () => {
+    const results = await createTestVideos(connection, num, "by_video");
     const uniqueResults = uniqueByKey(results, "videoId");
 
     const counts = results.reduce((acc, r) => {
@@ -89,8 +85,8 @@ describe("randomVideos", function () {
     testProportions(counts, uniqueResults, expectedProportions);
   });
 
-  it("should distribute selections proportionally to video duration for by_duration", () => {
-    const results = createTestVideos(connection);
+  it("should distribute selections proportionally to video duration for by_duration", async () => {
+    const results = await createTestVideos(connection);
     const uniqueResults = uniqueByKey(results, "videoId");
 
     const counts = results.reduce((acc, r) => {
@@ -107,8 +103,8 @@ describe("randomVideos", function () {
     testProportions(counts, uniqueResults, expectedProportions);
   });
 
-  it("should distribute selections proportionally to view count for greatest_hits", () => {
-    const results = createTestVideos(connection, num, "greatest_hits");
+  it("should distribute selections proportionally to view count for greatest_hits", async () => {
+    const results = await createTestVideos(connection, num, "greatest_hits");
     const uniqueResults = uniqueByKey(results, "videoId");
 
     const counts = results.reduce((acc, r) => {
@@ -125,8 +121,8 @@ describe("randomVideos", function () {
     testProportions(counts, uniqueResults, expectedProportions);
   });
 
-  it("should distribute selections proportionally to inverse view count for hidden_gems", () => {
-    const results = createTestVideos(connection, num, "hidden_gems");
+  it("should distribute selections proportionally to inverse view count for hidden_gems", async () => {
+    const results = await createTestVideos(connection, num, "hidden_gems");
     const uniqueResults = uniqueByKey(results, "videoId");
 
     const counts = results.reduce((acc, r) => {

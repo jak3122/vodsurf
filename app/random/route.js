@@ -45,7 +45,7 @@ export async function GET(request) {
   const streamerRoute = streamerConfig?.route;
   const streamer = connections[streamerRoute];
 
-  const videos = streamer.randomVideos(channels, strategy, count, {
+  const videos = await streamer.randomVideos(channels, strategy, count, {
     dateLow,
     dateHigh,
   });

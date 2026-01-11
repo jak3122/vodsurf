@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import Database from "better-sqlite3";
+import { createDbClient } from "./client.js";
 import streamers from "../streamers/index.js";
-import { mask, randByWeight, randInt, randUniform } from "./util.js";
+import { randByWeight, randInt, randUniform } from "./util.js";
 import yt from "./youtube.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,14 +15,10 @@ if (!fs.existsSync(dataDir)) {
 }
 
 export default class Connection {
-  constructor(streamerName, db) {
-    if (streamerName) {
-      this.db = new Database(path.join(dataDir, `${streamerName}.db`));
-      this.streamer = streamers.find((s) => s.route === streamerName);
-    }
-    if (db) {
-      this.db = db;
-    }
+  constructor(streamerName) {
+    this.db = createDbClient();
+    this.streamerName = streamerName;
+    this.streamer = streamers.find((s) => s.route === streamerName);
   }
 
   allChannelIds() {
@@ -32,10 +28,7 @@ export default class Connection {
   /* Populate/update */
 
   async sync({ full = false, limit = null }) {
-    if (full) {
-      this.dropTables();
-    }
-    this.createTables();
+    await this.createTables();
     for (const channel of this.streamer.channels) {
       await this.syncChannel({ channel, full, limit });
     }
@@ -69,10 +62,7 @@ export default class Connection {
         .filter(({ videoTitle }) => videoTitleFilter(videoTitle));
 
       // Update database with the filtered videos and get number of rows added
-      const rowsAdded = this.updateDatabaseWithVideos(
-        filteredVideos,
-        channelDetails
-      );
+      const rowsAdded = await this.updateDatabaseWithVideos(filteredVideos);
       addedVideos += rowsAdded;
 
       pageToken = nextPageToken;
@@ -91,20 +81,17 @@ export default class Connection {
     }
   }
 
-  updateDatabaseWithVideos(videos, channel) {
-    return this.db.transaction((videos, channel) => {
-      const added = this.insertVideos(videos);
-
-      return added;
-    })(videos, channel);
+  async updateDatabaseWithVideos(videos) {
+    return await this.insertVideos(videos);
   }
 
   /* Database methods */
 
-  createTables() {
-    this.db.exec(
+  async createTables() {
+    await this.db.execute(
       `CREATE TABLE IF NOT EXISTS videos (
         videoId VARCHAR(14) PRIMARY KEY NOT NULL,
+        streamer VARCHAR(20) NOT NULL,
         duration INT NOT NULL,
         publishedAt DATEONLY NOT NULL,
         viewCount INT,
@@ -113,66 +100,81 @@ export default class Connection {
         videoTitle VARCHAR(100)
       )`
     );
-    this.db.exec(
-      `CREATE UNIQUE INDEX IF NOT EXISTS videoKey ON videos (videoId);
-       CREATE INDEX IF NOT EXISTS coverIndex ON videos (channelId, publishedAt);
-       CREATE INDEX IF NOT EXISTS publishedKey ON videos (publishedAt);
-       CREATE INDEX IF NOT EXISTS durationKey ON videos (duration);
-       CREATE INDEX IF NOT EXISTS viewCountKey ON videos (viewCount);
-      `
+    await this.db.execute(
+      `CREATE UNIQUE INDEX IF NOT EXISTS videoKey ON videos (videoId)`
+    );
+    await this.db.execute(
+      `CREATE INDEX IF NOT EXISTS streamerKey ON videos (streamer)`
+    );
+    await this.db.execute(
+      `CREATE INDEX IF NOT EXISTS coverIndex ON videos (streamer, channelId, publishedAt)`
+    );
+    await this.db.execute(
+      `CREATE INDEX IF NOT EXISTS publishedKey ON videos (publishedAt)`
+    );
+    await this.db.execute(
+      `CREATE INDEX IF NOT EXISTS durationKey ON videos (duration)`
+    );
+    await this.db.execute(
+      `CREATE INDEX IF NOT EXISTS viewCountKey ON videos (viewCount)`
     );
   }
 
-  dropTables() {
-    this.db.prepare("DROP TABLE IF EXISTS videos").run();
-    this.db.prepare("DROP TABLE IF EXISTS channels").run();
-  }
+  async insertVideos(videos) {
+    if (!videos || !videos.length) return 0;
 
-  insertVideos(videos) {
-    if (!videos || !videos.length) return null;
-    let inserted = 0;
-    const stmt = this.db.prepare(
-      `INSERT INTO videos
-        (duration, publishedAt, videoId, viewCount, channelId, channelTitle, videoTitle)
+    const statements = videos.map((video) => ({
+      sql: `INSERT INTO videos
+        (streamer, duration, publishedAt, videoId, viewCount, channelId, channelTitle, videoTitle)
       VALUES
-        ($duration, $publishedAt, $videoId, $viewCount, $channelId, $channelTitle, $videoTitle)
-      ON CONFLICT(videoId) 
+        (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(videoId)
       DO UPDATE SET
+        streamer = excluded.streamer,
         duration = excluded.duration,
         publishedAt = excluded.publishedAt,
         viewCount = excluded.viewCount,
         channelId = excluded.channelId,
         channelTitle = excluded.channelTitle,
-        videoTitle = excluded.videoTitle;
-        `
-    );
-    for (const video of videos) {
-      inserted += stmt.run(video).changes;
-    }
-    return inserted;
+        videoTitle = excluded.videoTitle`,
+      args: [
+        this.streamerName,
+        video.duration,
+        video.publishedAt,
+        video.videoId,
+        video.viewCount,
+        video.channelId,
+        video.channelTitle,
+        video.videoTitle,
+      ],
+    }));
+
+    const results = await this.db.batch(statements, "write");
+    return results.reduce((sum, r) => sum + r.rowsAffected, 0);
   }
 
-  sumDurations(channelIds) {
-    const query = this.db
-      .prepare(`SELECT SUM(duration) AS sum FROM videos WHERE channelId in ?`)
-      .get([[channelIds]]);
-    return Number(query?.sum);
+  async sumDurations(channelIds) {
+    const placeholders = channelIds.map(() => "?").join(",");
+    const result = await this.db.execute({
+      sql: `SELECT SUM(duration) AS sum FROM videos WHERE streamer = ? AND channelId IN (${placeholders})`,
+      args: [this.streamerName, ...channelIds],
+    });
+    return Number(result.rows[0]?.sum);
   }
 
-  getMostRecent(channelId) {
-    const query = this.db
-      .prepare(
-        `SELECT channelId, MAX(publishedAt) as mostRecent
+  async getMostRecent(channelId) {
+    const result = await this.db.execute({
+      sql: `SELECT channelId, MAX(publishedAt) as mostRecent
      FROM videos
-     WHERE channelId = ?`
-      )
-      .get(channelId);
-    return query?.mostRecent;
+     WHERE streamer = ? AND channelId = ?`,
+      args: [this.streamerName, channelId],
+    });
+    return result.rows[0]?.mostRecent;
   }
 
   /* Query methods */
 
-  randomVideos(channelIds, strategy, count, { dateLow, dateHigh }) {
+  async randomVideos(channelIds, strategy, count, { dateLow, dateHigh }) {
     if (!channelIds) channelIds = this.allChannelIds();
     if (!Array.isArray(channelIds)) channelIds = [channelIds];
 
@@ -194,55 +196,55 @@ export default class Connection {
         break;
     }
 
-    const videos = this.db.transaction(() => {
-      const stmt = this.db.prepare(
-        `SELECT rowid, ${column}
-          FROM videos
-          WHERE channelId IN (${mask(channelIds)})
-            AND publishedAt BETWEEN $dateLow and $dateHigh
-        `
-      );
-      const queryVideos = stmt.all([...channelIds], {
-        dateLow,
-        dateHigh: `${dateHigh} 23:59:59`,
-      });
+    // First query: get candidates
+    const placeholders = channelIds.map(() => "?").join(",");
+    const candidatesResult = await this.db.execute({
+      sql: `SELECT rowid, ${column ? column : "1 as weight"}
+        FROM videos
+        WHERE streamer = ? AND channelId IN (${placeholders})
+          AND publishedAt BETWEEN ? AND ?`,
+      args: [this.streamerName, ...channelIds, dateLow, `${dateHigh} 23:59:59`],
+    });
 
-      let selectedVideos = key
-        ? randByWeight(queryVideos, key, count)
-        : randUniform(queryVideos, count);
+    const queryVideos = candidatesResult.rows;
 
-      const rowids = selectedVideos.map((v) => v.rowid);
-      const getStmt = this.db.prepare(
-        `SELECT * FROM videos WHERE rowid IN (${mask(rowids)})`
-      );
-      selectedVideos = getStmt.all([...rowids]);
+    let selectedVideos = key
+      ? randByWeight(queryVideos, key, count)
+      : randUniform(queryVideos, count);
 
-      return selectedVideos.map((v) => ({
-        ...v,
-        timestamp: randInt(0, v.duration),
-      }));
-    })();
+    if (selectedVideos.length === 0) {
+      return [];
+    }
 
-    return videos;
+    const rowids = selectedVideos.map((v) => v.rowid);
+    const rowPlaceholders = rowids.map(() => "?").join(",");
+    const fullVideosResult = await this.db.execute({
+      sql: `SELECT * FROM videos WHERE rowid IN (${rowPlaceholders})`,
+      args: [...rowids],
+    });
+
+    // Convert Row objects to plain objects and add timestamp
+    return fullVideosResult.rows.map((v) => ({
+      ...v,
+      timestamp: randInt(0, v.duration),
+    }));
   }
 
   /* Stats */
-  getStats() {
-    console.time("stats");
-    let stats = this.db
-      .prepare(
-        `SELECT
+  async getStats() {
+    const result = await this.db.execute({
+      sql: `SELECT
         channelId,
         channelTitle,
         SUM(viewCount) as views,
         SUM(duration) as duration,
         COUNT() as videos
        FROM videos
-       GROUP BY channelId`
-      )
-      .all();
-
-    console.timeEnd("stats");
-    return stats;
+       WHERE streamer = ?
+       GROUP BY channelId`,
+      args: [this.streamerName],
+    });
+    // Convert Row objects to plain objects for React serialization
+    return result.rows.map((row) => ({ ...row }));
   }
 }

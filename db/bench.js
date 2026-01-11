@@ -12,31 +12,37 @@ let dateRange = {
 const itersWarmup = 1000;
 const iters = 20000;
 
-// warmup
-for (let i = 0; i < itersWarmup; i++) {
+async function main() {
+  await connection.createTables();
+
+  // warmup
+  for (let i = 0; i < itersWarmup; i++) {
+    for (const strat of strats) {
+      await connection.randomVideos(channelIds, strat, 5, dateRange);
+    }
+  }
+
+  console.log(`\ndate range: ${dateRange.dateLow} - ${dateRange.dateHigh}`);
   for (const strat of strats) {
-    const videos = connection.randomVideos(channelIds, strat, 5, dateRange);
+    console.time(strat);
+    for (let i = 0; i < iters; i++) {
+      await connection.randomVideos(channelIds, strat, 5, dateRange);
+    }
+    console.timeEnd(strat);
+  }
+
+  dateRange = {
+    dateLow: "2017-09-01",
+    dateHigh: "2017-10-01",
+  };
+  console.log(`\ndate range: ${dateRange.dateLow} - ${dateRange.dateHigh}`);
+  for (const strat of strats) {
+    console.time(strat);
+    for (let i = 0; i < iters; i++) {
+      await connection.randomVideos(channelIds, strat, 5, dateRange);
+    }
+    console.timeEnd(strat);
   }
 }
 
-console.log(`\ndate range: ${dateRange.dateLow} - ${dateRange.dateHigh}`);
-for (const strat of strats) {
-  console.time(strat);
-  for (let i = 0; i < iters; i++) {
-    const videos = connection.randomVideos(channelIds, strat, 5, dateRange);
-  }
-  console.timeEnd(strat);
-}
-
-dateRange = {
-  dateLow: "2017-09-01",
-  dateHigh: "2017-10-01",
-};
-console.log(`\ndate range: ${dateRange.dateLow} - ${dateRange.dateHigh}`);
-for (const strat of strats) {
-  console.time(strat);
-  for (let i = 0; i < iters; i++) {
-    const videos = connection.randomVideos(channelIds, strat, 5, dateRange);
-  }
-  console.timeEnd(strat);
-}
+main();

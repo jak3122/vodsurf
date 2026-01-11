@@ -1,6 +1,7 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import connections from "./connections.js";
+import { createDbClient } from "./client.js";
 
 async function main() {
   const args = yargs(hideBin(process.argv))
@@ -20,6 +21,12 @@ async function main() {
   console.log(
     args["full"] ? "Doing full database sync..." : "Doing database update..."
   );
+
+  if (args["full"]) {
+    const db = createDbClient();
+    await db.execute("DROP TABLE IF EXISTS videos");
+    await db.execute("DROP TABLE IF EXISTS channels");
+  }
 
   for (const connection of Object.values(connections)) {
     await connection.sync({
