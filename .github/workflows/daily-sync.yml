@@ -1,0 +1,40 @@
+name: Daily DB Refresh
+
+on:
+  schedule:
+    - cron: '0 4 * * *' 
+  workflow_dispatch:
+
+jobs:
+  refresh-and-upload:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install & Run Sync
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          npm ci
+          npm run sync-full
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest-data
+          name: Latest Data (Automated)
+          files: data/vodsurf.db
+          draft: false
+          prerelease: false
+
+      - name: Trigger Vercel Rebuild
+        run: curl -X POST ${{ secrets.VERCEL_DEPLOY_HOOK }}

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS=\"--max-old-space-size=512\" next build",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=1024\" node scripts/download-db.js && next build",
     "start": "next start",
     "lint": "next lint",
     "deploy": "pnpm install && npm run build",
@@ -21,7 +21,7 @@
     "@chakra-ui/react": "^2.8.1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
-    "@libsql/client": "^0.17.0",
+    "better-sqlite3": "^12.6.0",
     "dayjs": "^1.11.19",
     "dotenv": "^16.3.1",
     "framer-motion": "^10.16.4",
