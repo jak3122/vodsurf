@@ -15,8 +15,12 @@ const DOWNLOAD_URL =
 console.log("⬇️ Downloading latest database...");
 
 try {
-  execSync(`curl -L -o "${dbPath}" "${DOWNLOAD_URL}"`, { stdio: "inherit" });
+  const dlOutput = execSync(`curl -L -o "${dbPath}" "${DOWNLOAD_URL}"`, {
+    stdio: "inherit",
+  });
 
+  console.log("curl output:");
+  console.log(dlOutput);
   console.log("✅ Database downloaded successfully.");
 } catch (error) {
   console.error(
