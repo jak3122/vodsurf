@@ -39,9 +39,8 @@ async function main() {
       full: args["full"],
       limit: args.limit,
     });
+    connection.closeDb();
   }
-
-  db.close();
 }
 
 main().then(() => process.exit());

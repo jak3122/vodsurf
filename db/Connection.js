@@ -73,6 +73,10 @@ export default class Connection {
     }
   }
 
+  closeDb() {
+    this.db.close();
+  }
+
   updateDatabaseWithVideos(videos) {
     return this.db.transaction((videos) => {
       return this.insertVideos(videos);
@@ -138,7 +142,9 @@ export default class Connection {
   sumDurations(channelIds) {
     const query = this.db
       .prepare(
-        `SELECT SUM(duration) AS sum FROM videos WHERE streamer = ? AND channelId IN (${mask(channelIds)})`
+        `SELECT SUM(duration) AS sum FROM videos WHERE streamer = ? AND channelId IN (${mask(
+          channelIds
+        )})`
       )
       .get(this.streamerName, ...channelIds);
     return Number(query?.sum);
