@@ -1,4 +1,5 @@
 import { createClient } from "@libsql/client";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -14,6 +15,13 @@ export function createDbClient() {
       authToken: process.env.TURSO_AUTH_TOKEN,
     });
   } else {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    const dataDir = path.join(__dirname, "../data");
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
     return createClient({
       url: `file:${path.join(dataDir, "vodsurf.db")}`,
     });

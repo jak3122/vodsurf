@@ -1,18 +1,7 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import { createDbClient } from "./client.js";
 import streamers from "../streamers/index.js";
+import { createDbClient } from "./client.js";
 import { randByWeight, randInt, randUniform } from "./util.js";
 import yt from "./youtube.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const dataDir = path.join(__dirname, "../data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
 
 export default class Connection {
   constructor(streamerName) {
