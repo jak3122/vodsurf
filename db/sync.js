@@ -40,6 +40,8 @@ async function main() {
       limit: args.limit,
     });
   }
+
+  db.close();
 }
 
 main().then(() => process.exit());
