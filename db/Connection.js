@@ -17,9 +17,6 @@ export default class Connection {
   /* Populate/update */
 
   async sync({ full = false, limit = null }) {
-    if (full) {
-      this.dropTables();
-    }
     this.createTables();
     for (const channel of this.streamer.channels) {
       await this.syncChannel({ channel, full, limit });
