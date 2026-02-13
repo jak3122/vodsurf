@@ -32,8 +32,8 @@ export default class Connection {
     const mostRecentinDatabase = this.getMostRecent(channelDetails.id);
     console.log(
       `processing ${username}... (most recent: ${new Date(
-        mostRecentinDatabase
-      )})`
+        mostRecentinDatabase,
+      )})`,
     );
 
     let pageToken = null;
@@ -42,7 +42,7 @@ export default class Connection {
     while (true) {
       const { videos, nextPageToken } = await yt.getChannelVideos(
         channelDetails,
-        pageToken
+        pageToken,
       );
 
       // Filter out videos based on viewCount and title
@@ -62,7 +62,8 @@ export default class Connection {
         (!full &&
           new Date(videos?.[videos.length - 1]?.publishedAt) <
             new Date(mostRecentinDatabase)) ||
-        videos.length < 50
+        videos.length < 50 ||
+        !pageToken
       ) {
         console.log(` (${addedVideos} new videos)`);
         break;
@@ -93,7 +94,7 @@ export default class Connection {
         channelId VARCHAR(30) NOT NULL,
         channelTitle VARCHAR(30),
         videoTitle VARCHAR(100)
-      )`
+      )`,
     );
     this.db.exec(
       `CREATE UNIQUE INDEX IF NOT EXISTS videoKey ON videos (videoId);
@@ -102,7 +103,7 @@ export default class Connection {
        CREATE INDEX IF NOT EXISTS publishedKey ON videos (publishedAt);
        CREATE INDEX IF NOT EXISTS durationKey ON videos (duration);
        CREATE INDEX IF NOT EXISTS viewCountKey ON videos (viewCount);
-      `
+      `,
     );
   }
 
@@ -128,7 +129,7 @@ export default class Connection {
         channelId = excluded.channelId,
         channelTitle = excluded.channelTitle,
         videoTitle = excluded.videoTitle;
-        `
+        `,
     );
     for (const video of videos) {
       inserted += stmt.run({ ...video, streamer: this.streamerName }).changes;
@@ -140,8 +141,8 @@ export default class Connection {
     const query = this.db
       .prepare(
         `SELECT SUM(duration) AS sum FROM videos WHERE streamer = ? AND channelId IN (${mask(
-          channelIds
-        )})`
+          channelIds,
+        )})`,
       )
       .get(this.streamerName, ...channelIds);
     return Number(query?.sum);
@@ -152,7 +153,7 @@ export default class Connection {
       .prepare(
         `SELECT channelId, MAX(publishedAt) as mostRecent
      FROM videos
-     WHERE streamer = ? AND channelId = ?`
+     WHERE streamer = ? AND channelId = ?`,
       )
       .get(this.streamerName, channelId);
     return query?.mostRecent;
@@ -188,7 +189,7 @@ export default class Connection {
           FROM videos
           WHERE streamer = ? AND channelId IN (${mask(channelIds)})
             AND publishedAt BETWEEN $dateLow and $dateHigh
-        `
+        `,
       );
       const queryVideos = stmt.all(this.streamerName, ...channelIds, {
         dateLow,
@@ -205,7 +206,7 @@ export default class Connection {
 
       const rowids = selectedVideos.map((v) => v.rowid);
       const getStmt = this.db.prepare(
-        `SELECT * FROM videos WHERE rowid IN (${mask(rowids)})`
+        `SELECT * FROM videos WHERE rowid IN (${mask(rowids)})`,
       );
       selectedVideos = getStmt.all(...rowids);
 
@@ -230,7 +231,7 @@ export default class Connection {
         COUNT() as videos
        FROM videos
        WHERE streamer = ?
-       GROUP BY channelId`
+       GROUP BY channelId`,
       )
       .all(this.streamerName);
 
