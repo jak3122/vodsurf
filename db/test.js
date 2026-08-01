@@ -52,7 +52,7 @@ describe("randomVideos", function () {
     channels = null;
   });
 
-  it("should return a valid video and timestamp", async () => {
+  it("should return a valid video and startSeconds", async () => {
     const [result] = await connection.randomVideos(channels, "by_duration", 1, {
       dateLow: "2023-01-01",
       dateHigh: "2023-02-31",
@@ -62,10 +62,10 @@ describe("randomVideos", function () {
       "Should return a videoId"
     );
     assert(
-      typeof result.timestamp === "number",
-      "Should return a numeric timestamp"
+      typeof result.startSeconds === "number",
+      "Should return a numeric startSeconds"
     );
-    assert(result.timestamp >= 0, "Timestamp should be non-negative");
+    assert(result.startSeconds >= 0, "startSeconds should be non-negative");
   });
 
   it("should distribute selections uniformly for by_video", async () => {
@@ -130,9 +130,12 @@ describe("randomVideos", function () {
       return acc;
     }, {});
 
-    const totalViews = uniqueResults.reduce((sum, r) => sum + r.viewCount, 0);
+    const totalInverseViews = uniqueResults.reduce(
+      (sum, r) => sum + 1.0 / r.viewCount,
+      0
+    );
     const expectedProportions = uniqueResults.reduce((acc, r) => {
-      acc[r.videoId] = 1.0 / r.viewCount / totalViews;
+      acc[r.videoId] = 1.0 / r.viewCount / totalInverseViews;
       return acc;
     }, {});
 

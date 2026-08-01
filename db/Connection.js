@@ -212,7 +212,7 @@ export default class Connection {
 
       return selectedVideos.map((v) => ({
         ...v,
-        timestamp: randInt(0, v.duration),
+        startSeconds: randInt(0, v.duration),
       }));
     })();
 
