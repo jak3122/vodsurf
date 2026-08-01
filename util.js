@@ -1,4 +1,5 @@
-export function timerSettingsToSeconds({ h, m, s }) {
+export function timerSettingsToSeconds(settings) {
+  const { h = 0, m = 0, s = 0 } = settings || {};
   const seconds = Number(h) * 60 * 60 + Number(m) * 60 + Number(s);
   return seconds;
 }

@@ -3,6 +3,7 @@ import { Flex, useDisclosure } from "@chakra-ui/react";
 import RandomButton from "./RandomButton";
 import SettingsButton from "./SettingsButton";
 import Countdown from "./Countdown";
+import SleepTimer from "./SleepTimer";
 import useStreamer from "@/hooks/useStreamer";
 import Settings from "@/app/[streamer]/components/Settings";
 import useSettings from "@/store/useSettings";
@@ -46,6 +47,7 @@ export default function Header() {
         <SettingsButton modal={settingsModal} />
         {showCountdown && <Countdown />}
       </Flex>
+      <SleepTimer />
       <History />
       <Settings modal={settingsModal} />
     </Flex>

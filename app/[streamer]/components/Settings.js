@@ -45,7 +45,7 @@ export default function Settings({ modal }) {
   const count = watch("count");
 
   const [selectedChannels, setSelectedChannels] = useState(
-    settings.channels[streamer.route]
+    settings.channels[streamer.route],
   );
   const [selectedMode, setSelectedMode] = useState(settings.mode);
   const [selectedCount, setSelectedCount] = useState(settings.count);
@@ -210,6 +210,28 @@ export default function Settings({ modal }) {
                 <HStack spacing={1} align="center">
                   <Text>S</Text>
                   <TimerField {...register("timer.s")} />
+                </HStack>
+              </HStack>
+            </Fieldset>
+
+            <Fieldset
+              direction="column"
+              gridColumnStart={1}
+              gridColumnEnd={{ base: 1, md: 3 }}
+            >
+              <legend>Sleep timer</legend>
+              <HStack spacing={4} align="center">
+                <HStack spacing={1} align="center">
+                  <Text>H</Text>
+                  <TimerField {...register("sleepTimer.h")} />
+                </HStack>
+                <HStack spacing={1} align="center">
+                  <Text>M</Text>
+                  <TimerField {...register("sleepTimer.m")} />
+                </HStack>
+                <HStack spacing={1} align="center">
+                  <Text>S</Text>
+                  <TimerField {...register("sleepTimer.s")} />
                 </HStack>
               </HStack>
             </Fieldset>

@@ -4,6 +4,7 @@ import Script from "next/script";
 import useSettings from "@/store/useSettings";
 import useVideoStore from "@/store/useVideoStore";
 import useTimer from "@/hooks/useTimer";
+import sleepTimerStore from "@/store/useSleepTimerStore";
 import useStreamer from "@/hooks/useStreamer";
 
 export default function Player() {
@@ -14,11 +15,22 @@ export default function Player() {
   const fetchVideos = useVideoStore((state) => state.fetchVideos);
   const video = useVideoStore((state) => state.videos[0]);
   const timer = useTimer();
+  const sleepTimerPause = sleepTimerStore((state) => state.pause);
+  const sleepTimerStart = sleepTimerStore((state) => state.start);
+  const sleepTimerSetVideoIsPlaying = sleepTimerStore(
+    (state) => state.setVideoIsPlaying
+  );
+  const sleepTimerSetOnExpire = sleepTimerStore((state) => state.setOnExpire);
   const onExpire = useCallback(
     () => fetchVideos({ streamer: streamer.route, settings }),
     [fetchVideos, streamer.route, settings]
   );
   timer.setOnExpire(onExpire);
+
+  const onSleepExpire = useCallback(() => {
+    player.current?.pauseVideo();
+  }, []);
+  sleepTimerSetOnExpire(onSleepExpire);
 
   const autoplay = settings.autoplay || settings.mode === "endless";
 
@@ -45,27 +57,39 @@ export default function Player() {
 
   const onPlayerStateChange = useCallback(
     ({ data: state }) => {
-      if (settings.mode !== "endless") return;
       console.log("state", state);
       switch (state) {
         case window.YT.PlayerState.UNSTARTED:
-          timer.unstarted();
+          if (settings.mode === "endless") timer.unstarted();
+          sleepTimerSetVideoIsPlaying(false);
           break;
         case window.YT.PlayerState.ENDED:
-          timer.pause();
-          onExpire();
+          if (settings.mode === "endless") {
+            timer.pause();
+            onExpire();
+          }
+          sleepTimerPause();
+          sleepTimerSetVideoIsPlaying(false);
           break;
         case window.YT.PlayerState.PAUSED:
         case window.YT.PlayerState.BUFFERING:
-          timer.pause();
+          if (settings.mode === "endless") timer.pause();
+          sleepTimerPause();
+          sleepTimerSetVideoIsPlaying(false);
           break;
         case window.YT.PlayerState.PLAYING:
-          timerSettingsToSeconds(settings.timer) > 0 && timer.start();
+          if (
+            settings.mode === "endless" &&
+            timerSettingsToSeconds(settings.timer) > 0
+          )
+            timer.start();
+          sleepTimerSetVideoIsPlaying(true);
+          sleepTimerStart();
           break;
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [settings.mode, timer, onExpire]
+    [settings.mode, timer, sleepTimerPause, sleepTimerStart, onExpire]
   );
 
   useEffect(() => {

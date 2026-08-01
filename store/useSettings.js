@@ -25,6 +25,11 @@ export const defaultSettings = Object.freeze({
     m: 0,
     s: 30,
   },
+  sleepTimer: {
+    h: 0,
+    m: 0,
+    s: 0,
+  },
   dateLow: null,
   dateHigh: null,
 });
@@ -40,6 +45,21 @@ const useSettings = create(
     }),
     {
       name: SETTINGS_KEY,
+      merge: (persisted, current) => {
+        const saved = persisted?.settings;
+        return {
+          ...current,
+          ...persisted,
+          settings: saved
+            ? {
+                ...current.settings,
+                ...saved,
+                sleepTimer:
+                  saved.sleepTimer ?? current.settings.sleepTimer,
+              }
+            : current.settings,
+        };
+      },
     }
   )
 );
