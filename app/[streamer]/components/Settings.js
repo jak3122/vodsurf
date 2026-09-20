@@ -29,7 +29,7 @@ import {
   useRadio,
   useRadioGroup,
 } from "@chakra-ui/react";
-import { forwardRef, useId } from "react";
+import { forwardRef, useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 
 const strategies = [
@@ -55,6 +55,15 @@ export default function Settings({ modal }) {
   const { register, handleSubmit, watch, setValue, getValues, reset } = useForm(
     { defaultValues: settings },
   );
+
+  // The persisted Zustand store hydrates after the first client render.
+  // react-hook-form only reads defaultValues on that initial render, so reset
+  // when the dialog opens (and again if hydration completes while it is open).
+  useEffect(() => {
+    if (modal.isOpen) {
+      reset(settings);
+    }
+  }, [modal.isOpen, reset, settings]);
 
   const streamer = useStreamer();
   const accent = streamer.theme.button.bg;
